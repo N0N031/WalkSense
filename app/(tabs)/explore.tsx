@@ -109,7 +109,7 @@ export default function ExploreScreen() {
       }
 
       try {
-        // PHASE 2 : Try to load persisted cells from DB
+
         const persisted = await sessionRepository.getCoverageCellsBySession(
           session.id,
           GRID_DISPLAY_LIMIT,
