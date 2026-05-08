@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,14 +20,38 @@ export default function AuthScreen() {
   const [hasAuth, setHasAuth] = useState(true);
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState("");
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [showPasscode, setShowPasscode] = useState(false);
+
+  const goHome = useCallback(() => router.replace("/(tabs)"), []);
+
+  const tryBiometric = useCallback(async () => {
+    const ok = await authService.unlockWithBiometrics();
+    if (ok) goHome();
+  }, [goHome]);
 
   useEffect(() => {
-    authService.hasAuth().then(setHasAuth);
-  }, []);
+    async function init() {
+      const [auth, bio] = await Promise.all([
+        authService.hasAuth(),
+        authService.isBiometricAvailable(),
+      ]);
+      setHasAuth(auth);
+      setBiometricAvailable(bio);
+      if (auth && bio) {
+        const ok = await authService.unlockWithBiometrics();
+        if (ok) goHome();
+        else setShowPasscode(true);
+      } else {
+        setShowPasscode(true);
+      }
+    }
+    init();
+  }, [goHome]);
 
   async function submit() {
     if (passcode.length < 4) {
-      setError("Code de 4 caracteres minimum");
+      setError("Code de 4 caractères minimum");
       return;
     }
 
@@ -41,8 +65,10 @@ export default function AuthScreen() {
     }
 
     setError("");
-    router.replace("/(tabs)");
+    goHome();
   }
+
+  if (!showPasscode) return null;
 
   return (
     <KeyboardAvoidingView
@@ -58,21 +84,23 @@ export default function AuthScreen() {
     >
       <View style={styles.content}>
         <BrandLogo compact />
-        <Text style={styles.title}>{hasAuth ? "Deverrouiller" : "Creer le code"}</Text>
+        <Text style={styles.title}>{hasAuth ? "Déverrouiller" : "Créer le code"}</Text>
         <Text style={styles.subtitle}>
           {hasAuth
-            ? "Entrez le code local pour ouvrir le coffre WalkSense."
-            : "Ce code protege les sessions stockees sur l'appareil."}
+            ? "Entrez le code local pour ouvrir RockSense."
+            : "Ce code protège les sessions stockées sur l'appareil."}
         </Text>
 
         <TextInput
           value={passcode}
           onChangeText={setPasscode}
           secureTextEntry
-          autoFocus
+          autoFocus={!biometricAvailable}
           placeholder="Code local"
           placeholderTextColor={COLORS.textTertiary}
           style={styles.input}
+          onSubmitEditing={submit}
+          returnKeyType="done"
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -84,6 +112,13 @@ export default function AuthScreen() {
           />
           <Text style={styles.buttonText}>{hasAuth ? "Ouvrir" : "Activer"}</Text>
         </TouchableOpacity>
+
+        {hasAuth && biometricAvailable ? (
+          <TouchableOpacity style={styles.bioButton} onPress={tryBiometric}>
+            <Ionicons name="finger-print" size={22} color={COLORS.accent} />
+            <Text style={styles.bioText}>Utiliser l'empreinte</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </KeyboardAvoidingView>
   );
@@ -148,5 +183,18 @@ const styles = StyleSheet.create({
     color: COLORS.background,
     fontSize: 16,
     fontWeight: "800",
+  },
+  bioButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  bioText: {
+    color: COLORS.accent,
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

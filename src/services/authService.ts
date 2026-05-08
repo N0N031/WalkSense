@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 
 import { sha256 } from "@/src/utils/sha256";
@@ -67,6 +68,29 @@ class AuthService {
 
   isUnlocked() {
     return Boolean(this.unlockedPasscode);
+  }
+
+  async isBiometricAvailable(): Promise<boolean> {
+    const compatible = await LocalAuthentication.hasHardwareAsync();
+    if (!compatible) return false;
+    const enrolled = await LocalAuthentication.isEnrolledAsync();
+    return enrolled;
+  }
+
+  async unlockWithBiometrics(): Promise<boolean> {
+    const available = await this.isBiometricAvailable();
+    if (!available) return false;
+
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: "Déverrouiller RockSense",
+      cancelLabel: "Code",
+      disableDeviceFallback: true,
+    });
+
+    if (result.success) {
+      this.unlockedPasscode = "__biometric__";
+    }
+    return result.success;
   }
 
 }
