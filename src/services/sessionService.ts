@@ -9,6 +9,11 @@ export interface GpsPoint {
   accuracy: number;
   timestamp: number;
   altitude?: number;
+  accuracyMeters?: number;
+  speedMps?: number;
+  confidenceLevel?: "HIGH" | "MEDIUM" | "LOW";
+  bearingDeg?: number;
+  satellitesCount?: number;
 }
 
 export interface MarkedEvent {

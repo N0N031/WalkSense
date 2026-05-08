@@ -67,13 +67,37 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
       lat REAL NOT NULL,
       lon REAL NOT NULL,
       accuracy REAL NOT NULL,
+      accuracyMeters REAL NOT NULL DEFAULT 0,
       timestamp INTEGER NOT NULL,
       altitude REAL,
+      speedMps REAL,
+      confidenceLevel TEXT NOT NULL DEFAULT 'LOW',
+      bearingDeg REAL,
+      satellitesCount INTEGER,
       FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
     );
 
     CREATE INDEX IF NOT EXISTS idx_gps_session ON gps_points(session_id, timestamp);
+
+    CREATE TABLE IF NOT EXISTS coverage_cells (
+      cellId TEXT PRIMARY KEY NOT NULL,
+      sessionId TEXT NOT NULL,
+      centerLat REAL NOT NULL,
+      centerLon REAL NOT NULL,
+      cellSizeMeter INTEGER NOT NULL,
+      radiusUsedMeters REAL NOT NULL,
+      confidenceLevel TEXT NOT NULL,
+      confidenceSource TEXT NOT NULL,
+      timestamp INTEGER NOT NULL,
+      FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_coverage_session ON coverage_cells(sessionId);
+    CREATE INDEX IF NOT EXISTS idx_coverage_confidence
+      ON coverage_cells(sessionId, confidenceLevel);
   `);
+
+  await ensureGpsPointGridColumns(db);
 
   if (hadSnakeCaseSchema) {
     await db.execAsync(`
@@ -86,9 +110,12 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
       FROM sessions_legacy_snake;
 
       INSERT INTO gps_points (
-        session_id, lat, lon, accuracy, timestamp, altitude
+        session_id, lat, lon, accuracy, accuracyMeters, timestamp, altitude,
+        speedMps, confidenceLevel, bearingDeg, satellitesCount
       )
-      SELECT session_id, lat, lon, accuracy, timestamp, altitude
+      SELECT
+        session_id, lat, lon, accuracy, accuracy, timestamp, altitude,
+        NULL, 'LOW', NULL, NULL
       FROM gps_points_legacy_snake
       ORDER BY session_id, point_order ASC;
 
@@ -107,6 +134,46 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
       DROP TABLE IF EXISTS gps_points_legacy_snake;
       DROP TABLE IF EXISTS sessions_legacy_snake;
     `);
+  }
+}
+
+async function ensureGpsPointGridColumns(
+  db: SQLite.SQLiteDatabase,
+): Promise<void> {
+  const columns = await db.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(gps_points)",
+  );
+  const names = new Set(columns.map((column) => column.name));
+
+  const migrations: string[] = [];
+  if (!names.has("accuracyMeters")) {
+    migrations.push(
+      "ALTER TABLE gps_points ADD COLUMN accuracyMeters REAL NOT NULL DEFAULT 0",
+    );
+  }
+  if (!names.has("speedMps")) {
+    migrations.push("ALTER TABLE gps_points ADD COLUMN speedMps REAL");
+  }
+  if (!names.has("confidenceLevel")) {
+    migrations.push(
+      "ALTER TABLE gps_points ADD COLUMN confidenceLevel TEXT NOT NULL DEFAULT 'LOW'",
+    );
+  }
+  if (!names.has("bearingDeg")) {
+    migrations.push("ALTER TABLE gps_points ADD COLUMN bearingDeg REAL");
+  }
+  if (!names.has("satellitesCount")) {
+    migrations.push("ALTER TABLE gps_points ADD COLUMN satellitesCount INTEGER");
+  }
+
+  for (const statement of migrations) {
+    await db.execAsync(statement);
+  }
+
+  if (!names.has("accuracyMeters")) {
+    await db.runAsync(
+      "UPDATE gps_points SET accuracyMeters = accuracy WHERE accuracyMeters = 0",
+    );
   }
 }
 

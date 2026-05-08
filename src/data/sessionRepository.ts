@@ -1,4 +1,9 @@
 import { getDb } from "@/src/data/db";
+import {
+  gpsPointEntityToPoint,
+  gpsPointToEntity,
+  type ConfidenceLevel,
+} from "@/src/data/gridEntities";
 import type {
   GpsPoint,
   MarkedEvent,
@@ -19,11 +24,18 @@ type SessionRow = {
 };
 
 type GpsPointRow = {
+  id?: number;
+  session_id?: string;
   lat: number;
   lon: number;
   accuracy: number;
+  accuracyMeters: number;
   timestamp: number;
   altitude: number | null;
+  speedMps: number | null;
+  confidenceLevel: ConfidenceLevel;
+  bearingDeg: number | null;
+  satellitesCount: number | null;
 };
 
 type EventRow = {
@@ -183,7 +195,9 @@ class SessionRepository {
 
     // Child rows are loaded in two batched queries to avoid duplicating session rows via joins.
     const gpsRows = await db.getAllAsync<GpsPointRow & { session_id: string }>(
-      `SELECT session_id, lat, lon, accuracy, timestamp, altitude
+      `SELECT
+        session_id, lat, lon, accuracy, accuracyMeters, timestamp, altitude,
+        speedMps, confidenceLevel, bearingDeg, satellitesCount
        FROM gps_points
        WHERE session_id IN (${placeholders})
        ORDER BY session_id, timestamp ASC`,
@@ -224,7 +238,9 @@ class SessionRepository {
   private async hydrateSession(row: SessionRow): Promise<Session> {
     const db = await getDb();
     const gpsRows = await db.getAllAsync<GpsPointRow>(
-      `SELECT lat, lon, accuracy, timestamp, altitude
+      `SELECT
+        lat, lon, accuracy, accuracyMeters, timestamp, altitude,
+        speedMps, confidenceLevel, bearingDeg, satellitesCount
        FROM gps_points
        WHERE session_id = ?
        ORDER BY timestamp ASC`,
@@ -275,16 +291,23 @@ class SessionRepository {
     point: GpsPoint,
   ): Promise<void> {
     const db = await getDb();
+    const entity = gpsPointToEntity(sessionId, point);
     await db.runAsync(
       `INSERT INTO gps_points (
-        session_id, lat, lon, accuracy, timestamp, altitude
-      ) VALUES (?, ?, ?, ?, ?, ?)`,
-      sessionId,
-      point.lat,
-      point.lon,
-      point.accuracy,
-      point.timestamp,
-      point.altitude ?? null,
+        session_id, lat, lon, accuracy, accuracyMeters, timestamp, altitude,
+        speedMps, confidenceLevel, bearingDeg, satellitesCount
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      entity.sessionId,
+      entity.lat,
+      entity.lon,
+      entity.accuracy,
+      entity.accuracyMeters,
+      entity.timestamp,
+      entity.altitude,
+      entity.speedMps,
+      entity.confidenceLevel,
+      entity.bearingDeg,
+      entity.satellitesCount,
     );
   }
 
@@ -358,13 +381,19 @@ class SessionRepository {
   }
 
   private gpsPointFromRow(row: GpsPointRow): GpsPoint {
-    return {
+    return gpsPointEntityToPoint({
+      sessionId: row.session_id ?? "",
       lat: row.lat,
       lon: row.lon,
       accuracy: row.accuracy,
+      accuracyMeters: row.accuracyMeters,
       timestamp: row.timestamp,
-      altitude: row.altitude ?? undefined,
-    };
+      altitude: row.altitude,
+      speedMps: row.speedMps,
+      confidenceLevel: row.confidenceLevel,
+      bearingDeg: row.bearingDeg,
+      satellitesCount: row.satellitesCount,
+    });
   }
 
   private eventFromRow(row: EventRow): MarkedEvent {
