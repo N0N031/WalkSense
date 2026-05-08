@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/src/constants/colors";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 
@@ -25,13 +25,21 @@ export interface GlobalMapProps {
 }
 
 export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
-  const [satellite, setSatellite] = useState(false);
+  const [satellite, setSatellite] = useState(true);
   const mapRef = useRef<RNMapView>(null);
+  const centeredOnFirstLocationRef = useRef(false);
 
   const allPoints = traces.flatMap((t) => t.points);
 
   const initialRegion =
-    allPoints.length > 0
+    userLocation
+      ? {
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }
+      : allPoints.length > 0
       ? {
           latitude: allPoints[0].lat,
           longitude: allPoints[0].lon,
@@ -39,8 +47,8 @@ export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
           longitudeDelta: 0.05,
         }
       : {
-          latitude: userLocation?.latitude ?? 43.6047,
-          longitude: userLocation?.longitude ?? 1.4442,
+          latitude: 43.6047,
+          longitude: 1.4442,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
         };
@@ -55,6 +63,20 @@ export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
     });
   }
 
+  const centerOnUser = useCallback(() => {
+    if (!userLocation) return;
+    mapRef.current?.animateToRegion(
+      { ...userLocation, latitudeDelta: 0.02, longitudeDelta: 0.02 },
+      400,
+    );
+  }, [userLocation]);
+
+  useEffect(() => {
+    if (!userLocation || centeredOnFirstLocationRef.current) return;
+    centeredOnFirstLocationRef.current = true;
+    centerOnUser();
+  }, [centerOnUser, userLocation]);
+
   return (
     <View style={styles.container}>
       <RNMapView
@@ -65,7 +87,10 @@ export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
         maxZoomLevel={19}
         showsUserLocation={false}
         showsMyLocationButton={false}
-        onMapReady={fitAll}
+        onMapReady={() => {
+          if (userLocation) centerOnUser();
+          else fitAll();
+        }}
       >
         <UrlTile
           urlTemplate={satellite ? TILES.satellite : TILES.street}
@@ -115,9 +140,21 @@ export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
           }),
         )}
       </RNMapView>
+      <View pointerEvents="none" style={styles.mapTint} />
 
       <TouchableOpacity style={styles.fitButton} onPress={fitAll}>
         <Ionicons name="expand-outline" size={20} color={COLORS.text} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.locateButton, !userLocation && styles.buttonDisabled]}
+        onPress={centerOnUser}
+      >
+        <Ionicons
+          name="locate"
+          size={20}
+          color={userLocation ? COLORS.primary : COLORS.textTertiary}
+        />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -137,7 +174,11 @@ export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  mapTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 32, 12, 0.22)",
+  },
   userDot: {
     width: 14,
     height: 14,
@@ -145,6 +186,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.info,
     borderWidth: 2,
     borderColor: "white",
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
   },
   eventDot: {
     width: 10,
@@ -160,16 +204,37 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: "white",
+    backgroundColor: COLORS.glassStrong,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
+  },
+  locateButton: {
+    position: "absolute",
+    bottom: 68,
+    left: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: COLORS.glassStrong,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 3,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  buttonDisabled: {
+    opacity: 0.4,
   },
   layerToggle: {
     position: "absolute",
@@ -178,7 +243,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "white",
+    backgroundColor: COLORS.glassStrong,
     borderWidth: 1,
     borderColor: COLORS.border,
     elevation: 3,

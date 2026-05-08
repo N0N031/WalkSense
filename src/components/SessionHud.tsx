@@ -21,6 +21,13 @@ export default function SessionHud({
     <View style={styles.container}>
       <View style={styles.timerSection}>
         <Text style={styles.timerLabel}>CHRONO</Text>
+        <View style={styles.actionCircle}>
+          <Ionicons
+            name={isRunning ? "pause" : "play"}
+            size={26}
+            color={COLORS.accent}
+          />
+        </View>
         <Text style={styles.timerValue}>{time}</Text>
         <View style={styles.statusRow}>
           <View
@@ -76,15 +83,20 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: COLORS.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    gap: 14,
+    marginHorizontal: 22,
+    marginTop: 14,
+    marginBottom: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    backgroundColor: COLORS.glassStrong,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    borderRadius: 14,
+    gap: 18,
   },
   timerSection: {
-    minWidth: 118,
+    minWidth: 112,
+    alignItems: "flex-start",
   },
   timerLabel: {
     color: COLORS.textTertiary,
@@ -93,12 +105,23 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginBottom: 2,
   },
+  actionCircle: {
+    width: 76,
+    height: 76,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 38,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+    backgroundColor: "rgba(0, 0, 0, 0.30)",
+  },
   timerValue: {
-    color: COLORS.accent,
+    color: COLORS.text,
     fontFamily: "monospace",
-    fontSize: 27,
+    fontSize: 13,
     fontWeight: "800",
-    letterSpacing: 1,
+    marginTop: 8,
+    fontVariant: ["tabular-nums"],
   },
   statusRow: {
     flexDirection: "row",
@@ -118,8 +141,8 @@ const styles = StyleSheet.create({
   },
   divider: {
     width: 1,
-    height: 44,
-    backgroundColor: COLORS.border,
+    height: 72,
+    backgroundColor: COLORS.divider,
   },
   metricsSection: {
     flex: 1,
@@ -132,8 +155,9 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     color: COLORS.text,
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 22,
+    fontWeight: "900",
+    fontVariant: ["tabular-nums"],
   },
   metricLabel: {
     color: COLORS.textTertiary,

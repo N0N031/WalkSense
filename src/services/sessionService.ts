@@ -284,6 +284,11 @@ class SessionService {
 
   async addGpsPoint(sessionId: string, point: GpsPoint): Promise<void> {
     try {
+      const session = await sessionRepository.getSessionById(sessionId);
+      if (!session) {
+        console.warn("addGpsPoint: session not found", sessionId);
+        return;
+      }
       await sessionRepository.insertGpsPoint(sessionId, point);
     } catch (error) {
       console.error("SessionService.addGpsPoint error:", error);

@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/src/constants/colors";
 import type { CoverageCellEntity } from "@/src/data/gridEntities";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 import GridOverlay from "@/src/components/GridOverlay";
@@ -31,8 +31,9 @@ export default function SessionMap({
   coverageCells = [],
   showGrid = true,
 }: SessionMapProps) {
-  const [satellite, setSatellite] = useState(false);
+  const [satellite, setSatellite] = useState(true);
   const mapRef = useRef<RNMapView>(null);
+  const centeredOnFirstLocationRef = useRef(false);
 
   const region = {
     latitude: userLocation?.latitude ?? 43.6047,
@@ -45,6 +46,20 @@ export default function SessionMap({
     () => gpsTrace.map((p) => ({ latitude: p.lat, longitude: p.lon })),
     [gpsTrace]
   );
+
+  const centerOnUser = useCallback(() => {
+    if (!userLocation) return;
+    mapRef.current?.animateToRegion(
+      { ...userLocation, latitudeDelta: 0.005, longitudeDelta: 0.005 },
+      400,
+    );
+  }, [userLocation]);
+
+  useEffect(() => {
+    if (!userLocation || centeredOnFirstLocationRef.current) return;
+    centeredOnFirstLocationRef.current = true;
+    centerOnUser();
+  }, [centerOnUser, userLocation]);
 
   return (
     <View style={styles.container}>
@@ -117,17 +132,12 @@ export default function SessionMap({
           );
         })}
       </RNMapView>
+      <View pointerEvents="none" style={styles.mapTint} />
 
       {/* Centrage sur position */}
       <TouchableOpacity
         style={[styles.centerButton, !userLocation && styles.centerButtonDisabled]}
-        onPress={() => {
-          if (!userLocation) return;
-          mapRef.current?.animateToRegion(
-            { ...userLocation, latitudeDelta: 0.005, longitudeDelta: 0.005 },
-            400
-          );
-        }}
+        onPress={centerOnUser}
       >
         <Ionicons
           name="locate"
@@ -157,6 +167,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 3,
     overflow: "hidden",
+    backgroundColor: COLORS.background,
+  },
+  mapTint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 32, 12, 0.22)",
   },
   userDot: {
     width: 16,
@@ -165,6 +180,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.info,
     borderWidth: 2,
     borderColor: "white",
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
   },
   marker: {
     width: 32,
@@ -185,16 +203,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: "white",
+    backgroundColor: COLORS.glassStrong,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
-    elevation: 3,
   },
   centerButtonDisabled: {
     opacity: 0.4,
@@ -206,14 +223,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "white",
+    backgroundColor: COLORS.glassStrong,
     borderWidth: 1,
     borderColor: COLORS.border,
-    shadowColor: "#000",
+    shadowColor: COLORS.glowGreen,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
-    elevation: 3,
   },
   layerToggleActive: {
     backgroundColor: COLORS.primary,

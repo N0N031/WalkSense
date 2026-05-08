@@ -5,28 +5,28 @@
  */
 
 export const COLORS = {
-  primary: "#3DBD3D",
-  accent: "#D4AF37",
-  error: "#C0392B",
-  cardBackground: "#121A10",
+  primary: "#52E04F",
+  accent: "#F3C84B",
+  error: "#F24B4B",
+  cardBackground: "rgba(4, 12, 7, 0.88)",
 
   verdProfond: "#1A3A1A",
-  orPremium: "#D4AF37",
-  vertClair: "#3DBD3D",
-  noirProfond: "#0F0F0F",
+  orPremium: "#F3C84B",
+  vertClair: "#52E04F",
+  noirProfond: "#020604",
 
-  background: "#0F0F0F",
-  surface: "#151E13",
-  surfaceRaised: "#1A2616",
-  text: "#F5F1E6",
-  textSecondary: "#C8C6B8",
-  textTertiary: "#8F927F",
-  border: "#293621",
-  divider: "#22301C",
+  background: "#020604",
+  surface: "rgba(5, 15, 9, 0.82)",
+  surfaceRaised: "rgba(9, 25, 13, 0.92)",
+  text: "#FFF7E6",
+  textSecondary: "#CFC7B8",
+  textTertiary: "#8E9486",
+  border: "rgba(82, 224, 79, 0.28)",
+  divider: "rgba(243, 200, 75, 0.22)",
 
-  success: "#3DBD3D",
-  danger: "#C0392B",
-  warning: "#D4AF37",
+  success: "#52E04F",
+  danger: "#F24B4B",
+  warning: "#F3C84B",
   info: "#65B8FF",
 
   markerAuto: "#D4AF37",
@@ -38,11 +38,14 @@ export const COLORS = {
   modeGroup: "#3DBD3D",
   modeGhost: "#8F927F",
 
-  gradientLight: "#1A3A1A",
-  gradientDark: "#0F0F0F",
-  gpsTrace: "#D4AF37",
-  mapWater: "#162118",
-  mapBuilding: "#1E2A1A",
+  gradientLight: "#133E17",
+  gradientDark: "#020604",
+  gpsTrace: "#F3C84B",
+  mapWater: "#07170E",
+  mapBuilding: "#0E2012",
+  glowGreen: "#89FF3F",
+  glass: "rgba(4, 10, 6, 0.72)",
+  glassStrong: "rgba(2, 7, 4, 0.92)",
 };
 
 export const COLOR_ALIASES = {

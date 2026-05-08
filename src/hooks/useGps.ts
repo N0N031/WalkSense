@@ -50,6 +50,49 @@ export function useGps() {
     setIsTracking(false);
   }, []);
 
+  const acceptLocation = useCallback(
+    (loc: Location.LocationObject, onPoint?: (point: GpsPoint) => void) => {
+      const accuracyMeters = loc.coords.accuracy ?? 10;
+      if (accuracyMeters > MAX_ACCURACY_M) return;
+      const speedMps = Math.max(0, loc.coords.speed ?? 0);
+      const heading = loc.coords.heading;
+      const timestamp = Date.now();
+      const confidenceLevel = calculateConfidenceLevel({
+        accuracyMeters,
+        speedMps,
+        pointAgeMs: 0,
+      });
+
+      const point: GpsPoint = {
+        lat: loc.coords.latitude,
+        lon: loc.coords.longitude,
+        accuracy: accuracyMeters,
+        accuracyMeters,
+        speedMps,
+        confidenceLevel,
+        bearingDeg: heading !== null && heading >= 0 ? heading : undefined,
+        altitude: loc.coords.altitude ?? undefined,
+        timestamp,
+      };
+
+      const last = lastAcceptedRef.current;
+      if (last) {
+        const jump = haversineMeters(last.lat, last.lon, point.lat, point.lon);
+        if (jump > MAX_JUMP_M) return;
+        setDistance((prev) => prev + jump);
+      }
+
+      lastAcceptedRef.current = point;
+      setLocation({
+        ...point,
+        speed: loc.coords.speed ?? undefined,
+      });
+      setGpsTrace((prev) => [...prev, point]);
+      onPoint?.(point);
+    },
+    [],
+  );
+
   const startTracking = useCallback(
     async (onPoint?: (point: GpsPoint) => void) => {
       if (subscriptionRef.current) return;
@@ -61,59 +104,25 @@ export function useGps() {
         setError(null);
         setIsTracking(true);
 
+        const current = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        acceptLocation(current, onPoint);
+
         subscriptionRef.current = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.BestForNavigation,
             distanceInterval: 2,
             timeInterval: 1000,
           },
-          (loc) => {
-            const accuracyMeters = loc.coords.accuracy ?? 10;
-            if (accuracyMeters > MAX_ACCURACY_M) return;
-            const speedMps = Math.max(0, loc.coords.speed ?? 0);
-            const heading = loc.coords.heading;
-            const timestamp = Date.now();
-            const confidenceLevel = calculateConfidenceLevel({
-              accuracyMeters,
-              speedMps,
-              pointAgeMs: 0,
-            });
-
-            const point: GpsPoint = {
-              lat: loc.coords.latitude,
-              lon: loc.coords.longitude,
-              accuracy: accuracyMeters,
-              accuracyMeters,
-              speedMps,
-              confidenceLevel,
-              bearingDeg:
-                heading !== null && heading >= 0 ? heading : undefined,
-              altitude: loc.coords.altitude ?? undefined,
-              timestamp,
-            };
-
-            const last = lastAcceptedRef.current;
-            if (last) {
-              const jump = haversineMeters(last.lat, last.lon, point.lat, point.lon);
-              if (jump > MAX_JUMP_M) return;
-              setDistance((prev) => prev + jump);
-            }
-
-            lastAcceptedRef.current = point;
-            setLocation({
-              ...point,
-              speed: loc.coords.speed ?? undefined,
-            });
-            setGpsTrace((prev) => [...prev, point]);
-            onPoint?.(point);
-          },
+          (loc) => acceptLocation(loc, onPoint),
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erreur GPS");
         setIsTracking(false);
       }
     },
-    [requestPermission],
+    [acceptLocation, requestPermission],
   );
 
   useEffect(() => stopTracking, [stopTracking]);

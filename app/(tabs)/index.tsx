@@ -9,6 +9,7 @@ import React, { useCallback, useState } from "react";
 import {
   Alert,
   FlatList,
+  ImageBackground,
   Modal,
   Pressable,
   ScrollView,
@@ -22,6 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BrandLogo from "@/src/components/BrandLogo";
+import PremiumBackground from "@/src/components/PremiumBackground";
 import { COLORS } from "@/src/constants/colors";
 import { sessionService, Session } from "@/src/services/sessionService";
 import { formatDistanceMeters } from "@/src/utils/format";
@@ -157,6 +159,10 @@ export default function HomeScreen() {
       pending: classified.length - refilled.length,
     };
   };
+
+  const activeCount = sessions.filter((session) => session.status !== "completed").length;
+  const completedCount = sessions.filter((session) => session.status === "completed").length;
+  const totalEvents = sessions.reduce((sum, session) => sum + session.events.length, 0);
 
   const renderExportPreview = () => (
     <Modal
@@ -314,6 +320,7 @@ export default function HomeScreen() {
    */
   if (showDetails && selectedSession) {
     return (
+      <PremiumBackground>
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <ScrollView
           style={styles.detailsContainer}
@@ -539,6 +546,7 @@ export default function HomeScreen() {
         </ScrollView>
         {renderExportPreview()}
       </View>
+      </PremiumBackground>
     );
   }
 
@@ -546,17 +554,33 @@ export default function HomeScreen() {
    * Render liste sessions
    */
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <BrandLogo compact />
-        <View style={styles.headerCopy}>
-          <Text style={styles.headerTitle}>WalkSense</Text>
-          <Text style={styles.headerSubtitle}>
-            {sessions.length} session{sessions.length !== 1 ? "s" : ""}
-          </Text>
+    <PremiumBackground>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ImageBackground
+        source={require("@/assets/images/walksense-splash-bg.png")}
+        resizeMode="cover"
+        style={styles.hero}
+        imageStyle={styles.heroImage}
+      >
+        <View style={styles.heroOverlay} />
+        <View style={styles.header}>
+          <BrandLogo compact />
+          <View style={styles.headerCopy}>
+            <Text style={styles.headerTitle}>WalkSense</Text>
+            <Text style={styles.headerSubtitle}>
+              {sessions.length} session{sessions.length !== 1 ? "s" : ""}
+            </Text>
+          </View>
+          <View style={styles.settingsButton}>
+            <Ionicons name="settings-outline" size={20} color={COLORS.text} />
+          </View>
         </View>
-      </View>
+        <View style={styles.statsGrid}>
+          <StatTile value={activeCount} label="En cours" icon="radio-button-on" />
+          <StatTile value={completedCount} label="Terminees" icon="checkmark-circle" />
+          <StatTile value={totalEvents} label="Total" icon="search-outline" />
+        </View>
+      </ImageBackground>
 
       {/* Sessions list */}
       {loading ? (
@@ -584,6 +608,27 @@ export default function HomeScreen() {
         />
       )}
       {renderExportPreview()}
+      </View>
+    </PremiumBackground>
+  );
+}
+
+function StatTile({
+  value,
+  label,
+  icon,
+}: {
+  value: number;
+  label: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+}) {
+  return (
+    <View style={styles.statTile}>
+      <Text style={styles.statTileValue}>{value}</Text>
+      <View style={styles.statTileLabelRow}>
+        <Ionicons name={icon} size={11} color={COLORS.primary} />
+        <Text style={styles.statTileLabel}>{label}</Text>
+      </View>
     </View>
   );
 }
@@ -597,23 +642,41 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "transparent",
   },
 
   // ─────────────────────────────────────────────────────────────────
   // HEADER
   // ─────────────────────────────────────────────────────────────────
 
+  hero: {
+    marginHorizontal: 14,
+    marginTop: 12,
+    marginBottom: 10,
+    minHeight: 238,
+    overflow: "hidden",
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.glassStrong,
+  },
+
+  heroImage: {
+    opacity: 0.92,
+  },
+
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.30)",
+  },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 14,
-    backgroundColor: COLORS.background,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 12,
   },
 
   headerCopy: {
@@ -632,6 +695,56 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
+  settingsButton: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.glass,
+  },
+
+  statsGrid: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: "auto",
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
+
+  statTile: {
+    flex: 1,
+    minHeight: 74,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: "rgba(2, 8, 5, 0.76)",
+  },
+
+  statTileValue: {
+    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: "900",
+    fontVariant: ["tabular-nums"],
+  },
+
+  statTileLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+
+  statTileLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
   // ─────────────────────────────────────────────────────────────────
   // LIST
   // ─────────────────────────────────────────────────────────────────
@@ -643,13 +756,14 @@ const styles = StyleSheet.create({
   },
 
   sessionCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.glass,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.accent,
+    shadowColor: COLORS.glowGreen,
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
     marginBottom: 8,
   },
 
@@ -680,7 +794,7 @@ const styles = StyleSheet.create({
 
   sessionCardBadge: {
     backgroundColor: "transparent",
-    borderRadius: 20,
+    borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderWidth: 1,
@@ -784,7 +898,7 @@ const styles = StyleSheet.create({
 
   detailsContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "transparent",
   },
 
   detailsHeader: {
@@ -793,7 +907,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.divider,
+    backgroundColor: COLORS.glassStrong,
   },
 
   detailsBackButton: {
@@ -812,7 +927,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 20,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.divider,
+    backgroundColor: COLORS.glass,
   },
 
   detailsSectionTitle: {
@@ -850,7 +966,7 @@ const styles = StyleSheet.create({
   // ─────────────────────────────────────────────────────────────────
 
   eventItem: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.glass,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -945,7 +1061,7 @@ const styles = StyleSheet.create({
   },
 
   hashBox: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.glassStrong,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
@@ -972,7 +1088,7 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.glass,
     borderRadius: 8,
     marginBottom: 8,
     borderWidth: 1,
@@ -1041,7 +1157,7 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
     fontSize: 11,
     lineHeight: 16,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.glassStrong,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 8,

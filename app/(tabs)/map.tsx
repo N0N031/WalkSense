@@ -96,6 +96,15 @@ export default function MapScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.map}>
+        <GlobalMap traces={traces} userLocation={userLocation} />
+        {loading ? (
+          <View style={styles.loading}>
+            <ActivityIndicator color={COLORS.accent} />
+          </View>
+        ) : null}
+      </View>
+
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Carte</Text>
@@ -104,15 +113,6 @@ export default function MapScreen() {
           </Text>
         </View>
         <Text style={styles.distance}>{formatDistanceMeters(totalDistance)}</Text>
-      </View>
-
-      <View style={styles.map}>
-        <GlobalMap traces={traces} userLocation={userLocation} />
-        {loading ? (
-          <View style={styles.loading}>
-            <ActivityIndicator color={COLORS.accent} />
-          </View>
-        ) : null}
       </View>
     </View>
   );
@@ -124,14 +124,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
+    position: "absolute",
+    top: 12,
+    left: 16,
+    right: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: COLORS.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderRadius: 18,
+    backgroundColor: COLORS.glassStrong,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     gap: 12,
   },
   title: {
@@ -151,6 +156,7 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+    overflow: "hidden",
   },
   loading: {
     ...StyleSheet.absoluteFillObject,

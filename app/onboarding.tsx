@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandLogo from "@/src/components/BrandLogo";
+import PremiumBackground from "@/src/components/PremiumBackground";
 import { COLORS } from "@/src/constants/colors";
 import { authService } from "@/src/services/authService";
 
@@ -41,16 +42,17 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingTop: Math.max(insets.top, 20),
-          paddingBottom: Math.max(insets.bottom, 20),
-        },
-      ]}
-    >
-      <BrandLogo />
+    <PremiumBackground>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: Math.max(insets.top, 20),
+            paddingBottom: Math.max(insets.bottom, 20),
+          },
+        ]}
+      >
+      <BrandLogo size="large" />
       <View style={styles.panel}>
         <Ionicons name={screen.icon} size={34} color={COLORS.accent} />
         <Text style={styles.title}>{screen.title}</Text>
@@ -68,7 +70,8 @@ export default function OnboardingScreen() {
         <Text style={styles.buttonText}>{last ? "Configurer" : "Suivant"}</Text>
         <Ionicons name="arrow-forward" size={18} color={COLORS.background} />
       </TouchableOpacity>
-    </View>
+      </View>
+    </PremiumBackground>
   );
 }
 
@@ -78,17 +81,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
-    backgroundColor: COLORS.background,
   },
   panel: {
     width: "100%",
     alignItems: "center",
     marginTop: 28,
-    padding: 20,
+    padding: 22,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.cardBackground,
+    shadowColor: COLORS.glowGreen,
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
   },
   title: {
     color: COLORS.text,
@@ -129,6 +134,9 @@ const styles = StyleSheet.create({
     gap: 10,
     borderRadius: 8,
     backgroundColor: COLORS.accent,
+    shadowColor: COLORS.accent,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
   },
   buttonText: {
     color: COLORS.background,

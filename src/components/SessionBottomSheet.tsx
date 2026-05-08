@@ -20,8 +20,8 @@ export default function SessionBottomSheet({
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Marqueurs</Text>
-          <Text style={styles.subtitle}>{events.length} evenement(s)</Text>
+          <Text style={styles.title}>MARQUEURS</Text>
+          <Text style={styles.subtitle}>{events.length} evenement</Text>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={onAddMarker}>
           <Ionicons name="add" size={22} color="white" />
@@ -31,8 +31,13 @@ export default function SessionBottomSheet({
       <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
         {events.length === 0 ? (
           <View style={styles.empty}>
-            <Ionicons name="radio-outline" size={28} color={COLORS.textTertiary} />
-            <Text style={styles.emptyText}>Aucun marqueur</Text>
+            <View style={styles.radar}>
+              <View style={styles.radarDot} />
+            </View>
+            <Text style={styles.emptyTitle}>Aucun marqueur detecte</Text>
+            <Text style={styles.emptyText}>
+              Ajoutez un point d interet sur le terrain
+            </Text>
           </View>
         ) : (
           events.map((event, index) => (
@@ -52,12 +57,13 @@ export default function SessionBottomSheet({
 const styles = StyleSheet.create({
   container: {
     flex: 2,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    backgroundColor: COLORS.cardBackground,
+    marginHorizontal: 22,
+    paddingTop: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    backgroundColor: COLORS.glass,
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
@@ -68,8 +74,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.text,
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "800",
+    letterSpacing: 1,
   },
   subtitle: {
     color: COLORS.textSecondary,
@@ -82,7 +89,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 8,
-    backgroundColor: COLORS.primary,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: "rgba(82, 224, 79, 0.16)",
   },
   list: {
     flex: 1,
@@ -93,12 +102,38 @@ const styles = StyleSheet.create({
   },
   empty: {
     alignItems: "center",
-    paddingVertical: 32,
+    paddingVertical: 48,
     gap: 8,
+  },
+  radar: {
+    width: 96,
+    height: 96,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 48,
+    borderWidth: 1,
+    borderColor: "rgba(82, 224, 79, 0.18)",
+    backgroundColor: "rgba(82, 224, 79, 0.04)",
+  },
+  radarDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.glowGreen,
+    shadowColor: COLORS.glowGreen,
+    shadowOpacity: 0.8,
+    shadowRadius: 14,
+  },
+  emptyTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "800",
+    marginTop: 8,
   },
   emptyText: {
     color: COLORS.textSecondary,
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

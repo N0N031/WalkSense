@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandLogo from "@/src/components/BrandLogo";
+import PremiumBackground from "@/src/components/PremiumBackground";
 import { COLORS } from "@/src/constants/colors";
 import { authService } from "@/src/services/authService";
 
@@ -71,19 +72,20 @@ export default function AuthScreen() {
   if (!showPasscode) return null;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={insets.top}
-      style={[
-        styles.container,
-        {
-          paddingTop: Math.max(insets.top, 20),
-          paddingBottom: Math.max(insets.bottom, 20),
-        },
-      ]}
-    >
-      <View style={styles.content}>
-        <BrandLogo compact />
+    <PremiumBackground>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={insets.top}
+        style={[
+          styles.container,
+          {
+            paddingTop: Math.max(insets.top, 20),
+            paddingBottom: Math.max(insets.bottom, 20),
+          },
+        ]}
+      >
+        <View style={styles.content}>
+        <BrandLogo size="large" />
         <Text style={styles.title}>{hasAuth ? "Déverrouiller" : "Créer le code"}</Text>
         <Text style={styles.subtitle}>
           {hasAuth
@@ -119,8 +121,9 @@ export default function AuthScreen() {
             <Text style={styles.bioText}>Utiliser empreinte</Text>
           </TouchableOpacity>
         ) : null}
-      </View>
-    </KeyboardAvoidingView>
+        </View>
+      </KeyboardAvoidingView>
+    </PremiumBackground>
   );
 }
 
@@ -128,7 +131,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: "100%",
-    backgroundColor: COLORS.background,
   },
   content: {
     width: "100%",
@@ -159,7 +161,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     color: COLORS.text,
-    backgroundColor: COLORS.cardBackground,
+    backgroundColor: COLORS.glassStrong,
   },
   error: {
     alignSelf: "flex-start",
@@ -178,6 +180,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: COLORS.accent,
     marginTop: 18,
+    shadowColor: COLORS.accent,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
   },
   buttonText: {
     color: COLORS.background,
