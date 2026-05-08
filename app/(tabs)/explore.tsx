@@ -20,7 +20,6 @@ import {
   MarkedEvent,
   sessionService,
 } from "@/src/services/sessionService";
-import { formatDistanceMeters } from "@/src/utils/format";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
@@ -144,327 +143,257 @@ export default function ExploreScreen() {
     };
   }, [session?.id, session?.coverageCells, gpsTrace]);
 
-  // ✅ Persist GPS point to state + DB
-  const persistLiveGpsPoint = useCallback(
-    (sessionId: string, point: GpsPoint) => {
-      setSession((prev) => {
-        if (!prev || prev.id !== sessionId) return prev;
+  // ✅ EFFECT: Update coverage cells when GPS point arrives
+  useEffect(() => {
+    if (!session?.id || session.status !== "running" || !location) return;
 
-        // Avoid duplicates
-        const alreadyExists = prev.gpsTrace.some(
-          (gpsPoint) =>
-            gpsPoint.timestamp === point.timestamp &&
-            gpsPoint.lat === point.lat &&
-            gpsPoint.lon === point.lon,
-        );
-        if (alreadyExists) return prev;
+    const gpsPoint: GpsPoint = {
+      id: makeId(),
+      sessionId: session.id,
+      lat: location.lat,
+      lon: location.lon,
+      accuracy: location.accuracy || 0,
+      timestamp: Date.now(),
+    };
 
-        // Add GPS point
-        const updated = { ...prev, gpsTrace: [...prev.gpsTrace, point] };
+    setSession((prev) => {
+      if (!prev || prev.id !== session.id) return prev;
 
-        // ✅ PHASE 4: Real-time grid calculation with throttling
-        try {
-          const now = Date.now();
-          const lastUpdate = updated.lastGridUpdateMs || 0;
+      // Avoid duplicates
+      const alreadyExists = prev.gpsTrace.some(
+        (gp) =>
+          gp.timestamp === gpsPoint.timestamp &&
+          gp.lat === gpsPoint.lat &&
+          gp.lon === gpsPoint.lon,
+      );
+      if (alreadyExists) return prev;
 
-          // Check throttle: only update if enough time has passed
-          if (now - lastUpdate > (updated.gridUpdateInterval ?? 1000)) {
-            // Calculate cells from fresh point only
-            const affectedCells = generateCellsFromPoint(sessionId, point, 1);
+      // Add GPS point
+      const updated = { ...prev, gpsTrace: [...prev.gpsTrace, gpsPoint] };
 
-            // Merge + deduplicate in memory
-            const merged = deduplicateCells([
-              ...updated.coverageCells,
-              ...affectedCells,
-            ]);
+      // ✅ PHASE 4: Real-time grid calculation with throttling
+      try {
+        const now = Date.now();
+        const lastUpdate = updated.lastGridUpdateMs || 0;
 
-            // Limit to 100 cells in memory
-            updated.coverageCells = merged.slice(0, 100);
-            updated.lastGridUpdateMs = now;
-          }
-        } catch (err) {
-          console.warn("Grid realtime calc error:", err);
-          // Continue without blocking GPS trace
+        // Check throttle: only update if enough time has passed
+        if (now - lastUpdate > updated.gridUpdateInterval) {
+          // Calculate cells from fresh point only
+          const affectedCells = generateCellsFromPoint(session.id, gpsPoint, 1);
+
+          // Merge + deduplicate in memory
+          const merged = deduplicateCells([
+            ...updated.coverageCells,
+            ...affectedCells,
+          ]);
+
+          // Limit to 100 cells in memory
+          updated.coverageCells = merged.slice(0, 100);
+          updated.lastGridUpdateMs = now;
         }
+      } catch (err) {
+        console.warn("Grid realtime calc error:", err);
+        // Continue without blocking GPS trace
+      }
 
-        return updated;
-      });
+      return updated;
+    });
 
-      // Persist to DB asynchronously (non-blocking)
-      sessionService.addGpsPoint(sessionId, point).catch((err) => {
-        console.error("GPS persistence error:", err);
-        setToast("Erreur sauvegarde GPS");
-      });
-    },
-    [setSession],
-  );
-
-  // ✅ Load session on focus
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-
-      loadCurrentSession()
-        .then((current) => {
-          if (!active || !current) return;
-          setInitialDistance(current.distance ?? 0);
-          syncElapsed(
-            current.duration ||
-              Math.max(0, Math.floor((Date.now() - current.startTime) / 1000)),
-          );
-          if (current.status === "active" || current.status === "running") {
-            startTimer();
-            startTracking((point) => {
-              persistLiveGpsPoint(current.id, point);
-            });
-          }
-        })
-        .catch((err) => console.error("loadCurrentSession error:", err));
-
-      sessionService
-        .getDueDracReminders()
-        .then((reminders) => {
-          const reminder = reminders[0];
-          if (!active || !reminder) return;
-          Alert.alert(
-            "Rappel DRAC 24h",
-            "Une trouvaille classee Artefact arrive a l'echeance de declaration.",
-            [
-              { text: "Plus tard", style: "cancel" },
-              {
-                text: "Marquer vu",
-                onPress: () =>
-                  sessionService.markDracReminderSeen(
-                    reminder.session.id,
-                    reminder.event.id,
-                  ),
-              },
-            ],
-          );
-        })
-        .catch((err) => console.error("getDueDracReminders error:", err));
-
-      return () => {
-        active = false;
-      };
-    }, [
-      loadCurrentSession,
-      persistLiveGpsPoint,
-      startTimer,
-      startTracking,
-      syncElapsed,
-    ]),
-  );
+    // Persist to DB asynchronously (non-blocking)
+    sessionService.addGpsPoint(session.id, gpsPoint).catch((err) => {
+      console.error("GPS persistence error:", err);
+      setToast("Erreur sauvegarde GPS");
+    });
+  }, [location, session?.id, session?.status]);
 
   // ✅ Handle start session
   const handleStart = useCallback(async () => {
-    const newSession = await createSession();
-    if (!newSession) {
-      setToast("Impossible de demarrer la session");
-      return;
+    try {
+      await createSession();
+      startTracking();
+      startTimer();
+      setInitialDistance(0);
+      setRedFilter(false);
+      setShowGrid(true);
+      setToast("Session démarrée");
+    } catch (err) {
+      console.error("Failed to start session:", err);
+      setToast("Erreur démarrage session");
     }
-
-    resetGps();
-    setInitialDistance(0);
-    resetTimer();
-    startTimer();
-    await startTracking((point) => {
-      persistLiveGpsPoint(newSession.id, point);
-    });
-    setToast("Session demarree");
-  }, [
-    createSession,
-    persistLiveGpsPoint,
-    resetGps,
-    resetTimer,
-    startTimer,
-    startTracking,
-  ]);
+  }, [createSession, startTracking, startTimer]);
 
   // ✅ Handle pause
-  const handlePause = useCallback(async () => {
-    const updated = await pause();
-    if (!updated) return;
+  const handlePause = useCallback(() => {
+    pause();
     pauseTimer();
-    stopTracking();
     setToast("Session en pause");
-  }, [pause, pauseTimer, stopTracking]);
+  }, [pause, pauseTimer]);
 
   // ✅ Handle resume
-  const handleResume = useCallback(async () => {
-    if (!session) return;
-    const updated = await resume();
-    if (!updated) return;
+  const handleResume = useCallback(() => {
+    resume();
     resumeTimer();
-    await startTracking((point) => {
-      persistLiveGpsPoint(session.id, point);
-    });
     setToast("Session reprise");
-  }, [persistLiveGpsPoint, resume, resumeTimer, session, startTracking]);
+  }, [resume, resumeTimer]);
 
   // ✅ Handle end session
   const handleEnd = useCallback(() => {
-    if (!session) return;
-
-    Alert.alert(
-      "Terminer la session ?",
-      `Duree: ${formatDuration(elapsed)} - Distance: ${formatDistanceMeters(
-        totalDistance,
-      )}`,
-      [
-        { text: "Annuler", style: "cancel" },
-        {
-          text: "Terminer",
-          style: "destructive",
-          onPress: async () => {
+    Alert.alert("Terminer session?", "Cette action est irréversible.", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Terminer",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await end();
             stopTracking();
             stopTimer();
-            await end(totalDistance, elapsed);
-            resetGps();
-            setInitialDistance(0);
-            resetTimer();
-            setToast("Session sauvegardee");
-          },
+            setToast("Session terminée");
+          } catch (err) {
+            console.error("Failed to end session:", err);
+            setToast("Erreur fermeture session");
+          }
         },
-      ],
-    );
-  }, [
-    elapsed,
-    end,
-    resetGps,
-    resetTimer,
-    session,
-    stopTimer,
-    stopTracking,
-    totalDistance,
-  ]);
+      },
+    ]);
+  }, [end, stopTracking, stopTimer]);
 
   // ✅ Handle add marker
   const handleAddMarker = useCallback(async () => {
-    if (!session) return;
+    if (!session?.id || !location) {
+      setToast("GPS non disponible");
+      return;
+    }
 
-    const lat = location?.lat ?? 43.6047;
-    const lon = location?.lon ?? 1.4442;
-    const event: MarkedEvent = {
-      id: makeId(),
-      type: "manual",
-      timestamp: Date.now(),
-      location: {
-        lat,
-        lon,
-        accuracy: location?.accuracy ?? 0,
+    try {
+      const event: MarkedEvent = {
+        id: makeId(),
+        sessionId: session.id,
+        type: "manual",
+        lat: location.lat,
+        lon: location.lon,
         timestamp: Date.now(),
-      },
-      notes: "Marqueur manuel",
-    };
+        classified: false,
+        classification: null,
+        notes: null,
+      };
 
-    await addEvent(event);
-    setToast("Marqueur ajoute");
-  }, [addEvent, location, session]);
+      await addEvent(event);
+      setToast("Marqueur ajouté");
+    } catch (err) {
+      console.error("Failed to add event:", err);
+      setToast("Erreur ajout marqueur");
+    }
+  }, [session?.id, location, addEvent]);
 
   // ✅ Handle classify
   const handleClassify = useCallback(
-    async (
-      classification: string,
-      notes?: string,
-      photoScale?: MarkedEvent["photoScale"],
-    ) => {
-      if (!selectedEvent) return;
-      await classify(selectedEvent.id, classification, notes, photoScale);
-      setToast(`Classe: ${classification}`);
+    async (classification: string, notes?: string) => {
+      if (!selectedEvent || !session?.id) return;
+
+      try {
+        await classify(selectedEvent.id, classification, notes);
+        setSelectedEvent(null);
+        setClassifyVisible(false);
+        setToast("Événement classé");
+      } catch (err) {
+        console.error("Failed to classify:", err);
+        setToast("Erreur classification");
+      }
     },
-    [classify, selectedEvent],
+    [selectedEvent, session?.id, classify],
   );
 
   // ✅ Handle refill
   const handleRefill = useCallback(async () => {
-    if (!selectedEvent) return;
-    await refill(selectedEvent.id);
-    setClassifyVisible(false);
-    setSelectedEvent(null);
-    setToast("Trou rebouche ✓");
-  }, [refill, selectedEvent]);
+    if (!selectedEvent || !session?.id) return;
 
-  // ✅ Open classify sheet
+    try {
+      await refill(selectedEvent.id);
+      setSelectedEvent(null);
+      setClassifyVisible(false);
+      setToast("Rebouchage enregistré");
+    } catch (err) {
+      console.error("Failed to refill:", err);
+      setToast("Erreur rebouchage");
+    }
+  }, [selectedEvent, session?.id, refill]);
+
+  // ✅ Handle event press
   const openClassify = useCallback((event: MarkedEvent) => {
     setSelectedEvent(event);
     setClassifyVisible(true);
   }, []);
 
-  // ✅ Render: No session
-  if (!session) {
+  // ✅ Load current session on focus
+  useFocusEffect(
+    useCallback(() => {
+      loadCurrentSession();
+    }, [loadCurrentSession]),
+  );
+
+  // ✅ View: No active session
+  if (!session || session.status === "closed") {
     return (
-      <View
-        style={[
-          styles.container,
-          {
-            paddingTop: insets.top,
-            paddingBottom: Math.max(insets.bottom, 12),
-          },
-        ]}
-      >
+      <View style={styles.container}>
         <View style={styles.empty}>
-          <BrandLogo />
-          <Text style={styles.title}>Nouvelle prospection</Text>
+          <BrandLogo size="large" />
+          <Text style={styles.title}>RockSense</Text>
           <Text style={styles.subtitle}>
-            Lancez une session pour enregistrer la trace GPS et les marqueurs.
+            Tracez vos prospections terrain avec précision. Enregistrez chaque
+            découverte et restez organisé.
           </Text>
           <TouchableOpacity style={styles.startButton} onPress={handleStart}>
-            <Ionicons name="play" size={20} color="white" />
-            <Text style={styles.startText}>Demarrer</Text>
+            <Ionicons name="location" size={20} color={COLORS.text} />
+            <Text style={styles.startText}>Démarrer prospection</Text>
           </TouchableOpacity>
         </View>
-        <Toast message={toast} onDone={() => setToast(null)} />
       </View>
     );
   }
 
-  // ✅ Render: Session active
+  // ✅ View: Active session
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <SessionHud
-        time={formatDuration(elapsed)}
-        distance={totalDistance}
-        gpsAccuracy={location?.accuracy}
-        isRunning={isRunning}
-      />
-
+    <View style={styles.container}>
       <SessionMap
         gpsTrace={gpsTrace}
+        events={session.events ?? []}
         userLocation={userLocation}
-        events={session.events}
         coverageCells={coverageCells}
         showGrid={showGrid}
         onEventPress={openClassify}
       />
 
+      <SessionHud
+        elapsed={elapsed}
+        distance={totalDistance}
+        accuracy={location?.accuracy}
+        signalLevel={3}
+        batteryLevel={95}
+      />
+
       <TouchableOpacity
         style={[
           styles.redFilterButton,
-          { top: insets.top + 92 },
           redFilter && styles.redFilterButtonActive,
         ]}
-        onPress={() => setRedFilter((value) => !value)}
+        onPress={() => setRedFilter(!redFilter)}
       >
-        <Ionicons
-          name={redFilter ? "moon" : "moon-outline"}
-          size={18}
-          color={redFilter ? COLORS.background : COLORS.accent}
-        />
+        <Ionicons name="filter" size={20} color={COLORS.accent} />
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[
           styles.gridToggleButton,
-          { top: insets.top + 142 },
+          { top: 160 },
           showGrid && styles.gridToggleButtonActive,
         ]}
-        onPress={() => setShowGrid((value) => !value)}
+        onPress={() => setShowGrid(!showGrid)}
       >
         <Ionicons
-          name="grid-outline"
-          size={18}
-          color={showGrid ? COLORS.background : COLORS.accent}
+          name="grid"
+          size={20}
+          color={showGrid ? "white" : COLORS.accent}
         />
       </TouchableOpacity>
 
