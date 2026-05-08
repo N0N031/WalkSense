@@ -150,11 +150,9 @@ export default function HomeScreen() {
   /**
    * Formater la distance
    */
-  const formatDistance = (meters: number): string => {
-    if (meters < 1000) {
-      return `${Math.round(meters)} m`;
-    }
-    return `${(meters / 1000).toFixed(2)} km`;
+  const formatDistance = (km: number): string => {
+    if (km < 1) return `${Math.round(km * 1000)} m`;
+    return `${km.toFixed(2)} km`;
   };
 
   const getRefillStats = (session: Session) => {
