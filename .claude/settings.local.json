@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(npx expo *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(gh pr create --title 'chore: SQLite migration, grid coverage, bug fixes' --body ' *)",
+      "Bash(git remote *)",
+      "Bash(winget install *)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
+      "Bash(gh --version)",
+      "Bash(gh auth *)"
     ]
   }
 }
