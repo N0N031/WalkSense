@@ -1,6 +1,10 @@
 import * as Crypto from "expo-crypto";
 
 import { sessionRepository } from "@/src/data/sessionRepository";
+import {
+  generateCoverageFromTrajectory,
+  persistCoverageCells,
+} from "@/src/services/GridService";
 import { sha256 } from "@/src/utils/sha256";
 
 export interface GpsPoint {
@@ -173,6 +177,13 @@ class SessionService {
         duration: data.duration,
         lockedAt,
       };
+
+      const coverageCells = await generateCoverageFromTrajectory({
+        sessionId,
+        gpsPoints: closed.gpsTrace,
+        cellSizeMeters: 1,
+      });
+      await persistCoverageCells(null, coverageCells);
 
       closed.hash = await sha256(this.buildCanonical(closed));
       await sessionRepository.updateSessionLock(

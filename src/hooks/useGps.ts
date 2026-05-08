@@ -1,6 +1,7 @@
 import * as Location from "expo-location";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GpsPoint } from "@/src/services/sessionService";
+import { calculateConfidenceLevel } from "@/src/services/GpsQualityService";
 import { haversineMeters } from "@/src/utils/distance";
 
 const MAX_ACCURACY_M = 40;
@@ -67,15 +68,28 @@ export function useGps() {
             timeInterval: 1000,
           },
           (loc) => {
-            const accuracy = loc.coords.accuracy ?? Number.POSITIVE_INFINITY;
-            if (accuracy > MAX_ACCURACY_M) return;
+            const accuracyMeters = loc.coords.accuracy ?? 10;
+            if (accuracyMeters > MAX_ACCURACY_M) return;
+            const speedMps = Math.max(0, loc.coords.speed ?? 0);
+            const heading = loc.coords.heading;
+            const timestamp = Date.now();
+            const confidenceLevel = calculateConfidenceLevel({
+              accuracyMeters,
+              speedMps,
+              pointAgeMs: 0,
+            });
 
             const point: GpsPoint = {
               lat: loc.coords.latitude,
               lon: loc.coords.longitude,
-              accuracy,
+              accuracy: accuracyMeters,
+              accuracyMeters,
+              speedMps,
+              confidenceLevel,
+              bearingDeg:
+                heading !== null && heading >= 0 ? heading : undefined,
               altitude: loc.coords.altitude ?? undefined,
-              timestamp: loc.timestamp,
+              timestamp,
             };
 
             const last = lastAcceptedRef.current;

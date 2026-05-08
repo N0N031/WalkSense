@@ -1,5 +1,6 @@
 import { getDb } from "@/src/data/db";
 import {
+  type CoverageCellEntity,
   gpsPointEntityToPoint,
   gpsPointToEntity,
   type ConfidenceLevel,
@@ -184,6 +185,40 @@ class SessionRepository {
        ORDER BY dracReminderAt ASC`,
       now,
     );
+  }
+
+  async upsertCoverageCells(cells: CoverageCellEntity[]): Promise<void> {
+    if (cells.length === 0) return;
+
+    const db = await getDb();
+    await db.withTransactionAsync(async () => {
+      for (const cell of cells) {
+        await db.runAsync(
+          `INSERT INTO coverage_cells (
+            cellId, sessionId, centerLat, centerLon, cellSizeMeter,
+            radiusUsedMeters, confidenceLevel, confidenceSource, timestamp
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(cellId) DO UPDATE SET
+            sessionId = excluded.sessionId,
+            centerLat = excluded.centerLat,
+            centerLon = excluded.centerLon,
+            cellSizeMeter = excluded.cellSizeMeter,
+            radiusUsedMeters = excluded.radiusUsedMeters,
+            confidenceLevel = excluded.confidenceLevel,
+            confidenceSource = excluded.confidenceSource,
+            timestamp = excluded.timestamp`,
+          cell.cellId,
+          cell.sessionId,
+          cell.centerLat,
+          cell.centerLon,
+          cell.cellSizeMeter,
+          cell.radiusUsedMeters,
+          cell.confidenceLevel,
+          cell.confidenceSource,
+          cell.timestamp,
+        );
+      }
+    });
   }
 
   private async hydrateSessions(rows: SessionRow[]): Promise<Session[]> {
