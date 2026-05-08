@@ -11,14 +11,14 @@ import { useGps } from "@/src/hooks/useGps";
 import { useSession } from "@/src/hooks/useSession";
 import { useTimer } from "@/src/hooks/useTimer";
 import {
-    deduplicateCells,
-    generateCellsFromPoint,
-    generateCoverageFromTrajectory
+  deduplicateCells,
+  generateCellsFromPoint,
+  generateCoverageFromTrajectory,
 } from "@/src/services/GridService";
 import {
-    GpsPoint,
-    MarkedEvent,
-    sessionService,
+  GpsPoint,
+  MarkedEvent,
+  sessionService,
 } from "@/src/services/sessionService";
 import { formatDistanceMeters } from "@/src/utils/format";
 import { Ionicons } from "@expo/vector-icons";
@@ -89,59 +89,65 @@ export default function ExploreScreen() {
     ? { latitude: location.lat, longitude: location.lon }
     : null;
 
+  // ✅ SINGLE EFFECT: Load grid data (persisted or preview)
   useEffect(() => {
+    if (!session || session.status !== "running") return;
+
     let active = true;
 
-    async function loadGrid() {
-      if (!session?.id) {
-        setCoverageCells([]);
-        return;
-      }
-
-      // PHASE 4 : Display real-time buffer first
-      if (session.coverageCells && session.coverageCells.length > 0) {
-        if (active) {
-          setCoverageCells(session.coverageCells.slice(0, GRID_DISPLAY_LIMIT));
-        }
-        return;
-      }
-
+    const loadGrid = async () => {
       try {
+        // PHASE 4A: Use real-time buffer first
+        if (session.coverageCells && session.coverageCells.length > 0) {
+          if (active) {
+            setCoverageCells(
+              session.coverageCells.slice(0, GRID_DISPLAY_LIMIT),
+            );
+          }
+          return;
+        }
+
+        // PHASE 4B: Load persisted cells from DB
         const persisted = await sessionRepository.getCoverageCellsBySession(
           session.id,
           GRID_DISPLAY_LIMIT,
         );
+
         if (!active) return;
+
         if (persisted.length > 0) {
           setCoverageCells(persisted);
           return;
         }
 
+        // PHASE 4C: Generate preview from last N GPS points
         const previewPoints = gpsTrace.slice(-GRID_PREVIEW_POINT_LIMIT);
-        const preview = await generateCoverageFromTrajectory({
-          sessionId: session.id,
-          gpsPoints: previewPoints,
-          cellSizeMeters: 1,
-        });
-        if (active) {
-          setCoverageCells(preview.slice(0, GRID_DISPLAY_LIMIT));
+        if (previewPoints.length > 0) {
+          const preview = generateCoverageFromTrajectory(previewPoints);
+          if (active) {
+            setCoverageCells(preview.slice(0, GRID_DISPLAY_LIMIT));
+          }
         }
       } catch (err) {
         console.warn("Failed to load coverage cells:", err);
         if (active) setCoverageCells([]);
       }
-    }
+    };
 
     loadGrid();
+
     return () => {
       active = false;
     };
-  }, [gpsTrace, session?.id, session?.coverageCells]);
+  }, [session?.id, session?.coverageCells, gpsTrace]);
 
+  // ✅ Persist GPS point to state + DB
   const persistLiveGpsPoint = useCallback(
     (sessionId: string, point: GpsPoint) => {
       setSession((prev) => {
         if (!prev || prev.id !== sessionId) return prev;
+
+        // Avoid duplicates
         const alreadyExists = prev.gpsTrace.some(
           (gpsPoint) =>
             gpsPoint.timestamp === point.timestamp &&
@@ -153,7 +159,7 @@ export default function ExploreScreen() {
         // Add GPS point
         const updated = { ...prev, gpsTrace: [...prev.gpsTrace, point] };
 
-        // PHASE 4 : Real-time grid calculation with throttling
+        // ✅ PHASE 4: Real-time grid calculation with throttling
         try {
           const now = Date.now();
           const lastUpdate = updated.lastGridUpdateMs || 0;
@@ -190,9 +196,11 @@ export default function ExploreScreen() {
     [setSession],
   );
 
+  // ✅ Load session on focus
   useFocusEffect(
     useCallback(() => {
       let active = true;
+
       loadCurrentSession()
         .then((current) => {
           if (!active || !current) return;
@@ -209,6 +217,7 @@ export default function ExploreScreen() {
           }
         })
         .catch((err) => console.error("loadCurrentSession error:", err));
+
       sessionService
         .getDueDracReminders()
         .then((reminders) => {
@@ -231,6 +240,7 @@ export default function ExploreScreen() {
           );
         })
         .catch((err) => console.error("getDueDracReminders error:", err));
+
       return () => {
         active = false;
       };
@@ -243,6 +253,7 @@ export default function ExploreScreen() {
     ]),
   );
 
+  // ✅ Handle start session
   const handleStart = useCallback(async () => {
     const newSession = await createSession();
     if (!newSession) {
@@ -267,6 +278,7 @@ export default function ExploreScreen() {
     startTracking,
   ]);
 
+  // ✅ Handle pause
   const handlePause = useCallback(async () => {
     const updated = await pause();
     if (!updated) return;
@@ -275,6 +287,7 @@ export default function ExploreScreen() {
     setToast("Session en pause");
   }, [pause, pauseTimer, stopTracking]);
 
+  // ✅ Handle resume
   const handleResume = useCallback(async () => {
     if (!session) return;
     const updated = await resume();
@@ -286,6 +299,7 @@ export default function ExploreScreen() {
     setToast("Session reprise");
   }, [persistLiveGpsPoint, resume, resumeTimer, session, startTracking]);
 
+  // ✅ Handle end session
   const handleEnd = useCallback(() => {
     if (!session) return;
 
@@ -322,6 +336,7 @@ export default function ExploreScreen() {
     totalDistance,
   ]);
 
+  // ✅ Handle add marker
   const handleAddMarker = useCallback(async () => {
     if (!session) return;
 
@@ -344,6 +359,7 @@ export default function ExploreScreen() {
     setToast("Marqueur ajoute");
   }, [addEvent, location, session]);
 
+  // ✅ Handle classify
   const handleClassify = useCallback(
     async (
       classification: string,
@@ -357,6 +373,7 @@ export default function ExploreScreen() {
     [classify, selectedEvent],
   );
 
+  // ✅ Handle refill
   const handleRefill = useCallback(async () => {
     if (!selectedEvent) return;
     await refill(selectedEvent.id);
@@ -365,11 +382,13 @@ export default function ExploreScreen() {
     setToast("Trou rebouche ✓");
   }, [refill, selectedEvent]);
 
+  // ✅ Open classify sheet
   const openClassify = useCallback((event: MarkedEvent) => {
     setSelectedEvent(event);
     setClassifyVisible(true);
   }, []);
 
+  // ✅ Render: No session
   if (!session) {
     return (
       <View
@@ -397,6 +416,7 @@ export default function ExploreScreen() {
     );
   }
 
+  // ✅ Render: Session active
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <SessionHud
