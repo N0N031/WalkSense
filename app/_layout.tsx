@@ -5,8 +5,10 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
+import { migrateDistancesKmToMetersIfNeeded } from '@/src/data/db';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
-import { authService } from '@/src/services/authService';
+import { migrateVaultToSqliteIfNeeded } from '@/src/data/migrationFromVault';
+import { authService, migrateAuthToSecureStoreIfNeeded } from '@/src/services/authService';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -19,6 +21,11 @@ export default function RootLayout() {
   useEffect(() => {
     let active = true;
     async function routeGate() {
+      await migrateVaultToSqliteIfNeeded();
+      await migrateDistancesKmToMetersIfNeeded();
+      await migrateAuthToSecureStoreIfNeeded();
+      if (!active) return;
+
       const onboardingDone = await authService.isOnboardingDone();
       if (!active) return;
       if (!onboardingDone && pathname !== "/onboarding") {

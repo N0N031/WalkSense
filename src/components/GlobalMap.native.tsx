@@ -62,6 +62,7 @@ export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
         style={{ flex: 1 }}
         mapType="none"
         initialRegion={initialRegion}
+        maxZoomLevel={19}
         showsUserLocation={false}
         showsMyLocationButton={false}
         onMapReady={fitAll}

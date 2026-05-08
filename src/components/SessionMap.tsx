@@ -1,4 +1,5 @@
 import { COLORS } from "@/src/constants/colors";
+import type { CoverageCellEntity } from "@/src/data/gridEntities";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -9,17 +10,33 @@ export interface SessionMapProps {
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
+  coverageCells?: CoverageCellEntity[];
+  showGrid?: boolean;
 }
 
-export default function SessionMap({ events }: SessionMapProps) {
+export default function SessionMap({
+  events,
+  userLocation,
+  coverageCells = [],
+  showGrid = true,
+}: SessionMapProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>🗺️</Text>
       <Text style={styles.label}>Carte GPS</Text>
       <Text style={styles.sub}>Non disponible sur cette plateforme</Text>
+      {userLocation ? (
+        <Text style={styles.location}>
+          Position: {userLocation.latitude.toFixed(5)},{" "}
+          {userLocation.longitude.toFixed(5)}
+        </Text>
+      ) : null}
       {events.length > 0 && (
         <Text style={styles.count}>{events.length} marqueur(s)</Text>
       )}
+      {showGrid && coverageCells.length > 0 ? (
+        <Text style={styles.count}>{coverageCells.length} cellule(s)</Text>
+      ) : null}
     </View>
   );
 }
@@ -43,6 +60,10 @@ const styles = StyleSheet.create({
   sub: {
     fontSize: 13,
     color: COLORS.textSecondary,
+  },
+  location: {
+    fontSize: 12,
+    color: COLORS.info,
   },
   count: {
     fontSize: 12,

@@ -1,9 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/src/constants/colors";
+import type { CoverageCellEntity } from "@/src/data/gridEntities";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
 import React, { useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
+import GridOverlay from "@/src/components/GridOverlay";
 
 const TILES = {
   street: "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
@@ -16,6 +18,8 @@ export interface SessionMapProps {
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
+  coverageCells?: CoverageCellEntity[];
+  showGrid?: boolean;
 }
 
 export default function SessionMap({
@@ -24,6 +28,8 @@ export default function SessionMap({
   events,
   onEventPress,
   historicalTraces = [],
+  coverageCells = [],
+  showGrid = true,
 }: SessionMapProps) {
   const [satellite, setSatellite] = useState(false);
   const mapRef = useRef<RNMapView>(null);
@@ -47,6 +53,7 @@ export default function SessionMap({
         style={{ flex: 1 }}
         mapType="none"
         initialRegion={region}
+        maxZoomLevel={19}
         showsUserLocation={false}
         showsMyLocationButton={false}
         moveOnMarkerPress={false}
@@ -74,8 +81,11 @@ export default function SessionMap({
             coordinates={polyline}
             strokeColor={satellite ? "#00ccff" : COLORS.gpsTrace}
             strokeWidth={3}
+            zIndex={10}
           />
         )}
+
+        <GridOverlay cells={coverageCells} isVisible={showGrid} />
 
         {userLocation && (
           <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>

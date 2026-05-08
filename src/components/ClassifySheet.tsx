@@ -105,7 +105,7 @@ export default function ClassifySheet({
               {step === "classify" ? (
                 <>
                   <View style={styles.header}>
-                    <Text style={styles.title}>Classer le signal</Text>
+                    <Text style={styles.title}>Classer le marqueur</Text>
                     <TouchableOpacity
                       style={styles.iconButton}
                       onPress={handleClose}
@@ -116,8 +116,7 @@ export default function ClassifySheet({
 
                   {event ? (
                     <Text style={styles.summary}>
-                      Signal {Math.round(event.signal ?? event.signalStrength ?? 0)}%
-                      {" — "}{new Date(event.timestamp).toLocaleTimeString()}
+                      {new Date(event.timestamp).toLocaleTimeString()}
                     </Text>
                   ) : null}
 

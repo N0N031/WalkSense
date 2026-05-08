@@ -9,8 +9,10 @@ import React, { useCallback, useState } from "react";
 import {
   Alert,
   FlatList,
+  Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -22,6 +24,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandLogo from "@/src/components/BrandLogo";
 import { COLORS } from "@/src/constants/colors";
 import { sessionService, Session } from "@/src/services/sessionService";
+import { formatDistanceMeters } from "@/src/utils/format";
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -35,6 +38,10 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [exportPreview, setExportPreview] = useState<{
+    title: string;
+    content: string;
+  } | null>(null);
 
   /**
    * Charger les sessions au focus
@@ -99,10 +106,7 @@ export default function HomeScreen() {
   const handleExportJson = async (sessionId: string) => {
     try {
       const json = await sessionService.exportSessionJson(sessionId);
-      Alert.alert(
-        "✅ Exporté",
-        "JSON copié (intégration partage V2.0)\n\n" + json.substring(0, 100) + "..."
-      );
+      setExportPreview({ title: "Export JSON", content: json });
     } catch {
       Alert.alert("❌ Erreur", "Impossible d'exporter en JSON");
     }
@@ -114,10 +118,7 @@ export default function HomeScreen() {
   const handleExportGpx = async (sessionId: string) => {
     try {
       const gpx = await sessionService.exportSessionGpx(sessionId);
-      Alert.alert(
-        "✅ Exporté",
-        "GPX prêt pour cartes externes (V2.0)\n\n" + gpx.substring(0, 100) + "..."
-      );
+      setExportPreview({ title: "Export GPX", content: gpx });
     } catch {
       Alert.alert("❌ Erreur", "Impossible d'exporter en GPX");
     }
@@ -147,16 +148,6 @@ export default function HomeScreen() {
     return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  /**
-   * Formater la distance
-   */
-  const formatDistance = (meters: number): string => {
-    if (meters < 1000) {
-      return `${Math.round(meters)} m`;
-    }
-    return `${(meters / 1000).toFixed(2)} km`;
-  };
-
   const getRefillStats = (session: Session) => {
     const classified = session.events.filter((event) => event.classification);
     const refilled = classified.filter((event) => event.refilledAt);
@@ -166,6 +157,49 @@ export default function HomeScreen() {
       pending: classified.length - refilled.length,
     };
   };
+
+  const renderExportPreview = () => (
+    <Modal
+      visible={exportPreview !== null}
+      animationType="slide"
+      onRequestClose={() => setExportPreview(null)}
+    >
+      <View style={[styles.exportContainer, { paddingTop: insets.top }]}>
+        <View style={styles.exportHeader}>
+          <TouchableOpacity
+            style={styles.detailsBackButton}
+            onPress={() => setExportPreview(null)}
+          >
+            <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
+            <Text style={styles.detailsBackText}>Retour</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.exportShareButton}
+            onPress={() => {
+              if (!exportPreview) return;
+              Share.share({
+                title: exportPreview.title,
+                message: exportPreview.content,
+              });
+            }}
+          >
+            <Ionicons name="share-outline" size={18} color={COLORS.background} />
+            <Text style={styles.exportShareText}>Partager</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.exportTitle}>{exportPreview?.title}</Text>
+        <ScrollView
+          style={styles.exportBody}
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
+        >
+          <Text selectable style={styles.exportText}>
+            {exportPreview?.content}
+          </Text>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
 
   /**
    * Render session item
@@ -257,7 +291,7 @@ export default function HomeScreen() {
             color={COLORS.primary}
           />
           <Text style={styles.statLabel}>
-            {formatDistance(item.distance)}
+            {formatDistanceMeters(item.distance)}
           </Text>
         </View>
 
@@ -335,7 +369,7 @@ export default function HomeScreen() {
             <View style={styles.detailsRow}>
               <Text style={styles.detailsLabel}>Distance :</Text>
               <Text style={styles.detailsValue}>
-                {formatDistance(selectedSession.distance)}
+                {formatDistanceMeters(selectedSession.distance)}
               </Text>
             </View>
 
@@ -503,6 +537,7 @@ export default function HomeScreen() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+        {renderExportPreview()}
       </View>
     );
   }
@@ -548,6 +583,7 @@ export default function HomeScreen() {
           scrollEnabled={true}
         />
       )}
+      {renderExportPreview()}
     </View>
   );
 }
@@ -953,5 +989,62 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.primary,
     flex: 1,
+  },
+
+  exportContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  exportHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+
+  exportShareButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: COLORS.accent,
+  },
+
+  exportShareText: {
+    color: COLORS.background,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  exportTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "800",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+
+  exportBody: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+
+  exportText: {
+    color: COLORS.text,
+    fontFamily: "monospace",
+    fontSize: 11,
+    lineHeight: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    padding: 12,
   },
 });
