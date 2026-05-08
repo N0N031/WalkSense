@@ -15,6 +15,8 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
 }
 
 async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
+  const hadSnakeCaseSchema = await migrateSnakeCaseSchemaIfNeeded(db);
+
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY NOT NULL,
@@ -70,4 +72,64 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_gps_session ON gps_points(session_id, timestamp);
   `);
+
+  if (hadSnakeCaseSchema) {
+    await db.execAsync(`
+      INSERT OR IGNORE INTO sessions (
+        id, createdAt, startTime, endTime, duration, distance, status, metadata, hash, lockedAt
+      )
+      SELECT
+        id, created_at, start_time, end_time, duration, distance, status,
+        metadata_json, hash, locked_at
+      FROM sessions_legacy_snake;
+
+      INSERT INTO gps_points (
+        session_id, lat, lon, accuracy, timestamp, altitude
+      )
+      SELECT session_id, lat, lon, accuracy, timestamp, altitude
+      FROM gps_points_legacy_snake
+      ORDER BY session_id, point_order ASC;
+
+      INSERT OR IGNORE INTO events (
+        id, session_id, timestamp, lat, lon, accuracy, altitude, type,
+        classification, signalStrength, notes, refilledAt, dracReminderAt,
+        dracReminderSeenAt, photoScale, signal, position
+      )
+      SELECT
+        id, session_id, timestamp, lat, lon, accuracy, altitude, type,
+        classification, signal_strength, notes, refilled_at, drac_reminder_at,
+        drac_reminder_seen_at, photo_scale, signal, position_json
+      FROM events_legacy_snake;
+
+      DROP TABLE IF EXISTS events_legacy_snake;
+      DROP TABLE IF EXISTS gps_points_legacy_snake;
+      DROP TABLE IF EXISTS sessions_legacy_snake;
+    `);
+  }
+}
+
+async function migrateSnakeCaseSchemaIfNeeded(
+  db: SQLite.SQLiteDatabase,
+): Promise<boolean> {
+  const sessionColumns = await db.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(sessions)",
+  );
+  const hasSnakeCaseSchema = sessionColumns.some((column) =>
+    column.name === "created_at",
+  );
+  const hasCamelCaseSchema = sessionColumns.some((column) =>
+    column.name === "createdAt",
+  );
+
+  if (!hasSnakeCaseSchema || hasCamelCaseSchema) return false;
+
+  await db.execAsync(`
+    PRAGMA foreign_keys = OFF;
+    ALTER TABLE sessions RENAME TO sessions_legacy_snake;
+    ALTER TABLE gps_points RENAME TO gps_points_legacy_snake;
+    ALTER TABLE events RENAME TO events_legacy_snake;
+    PRAGMA foreign_keys = ON;
+  `);
+
+  return true;
 }

@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
+import { migrateVaultToSqliteIfNeeded } from '@/src/data/migrationFromVault';
 import { authService } from '@/src/services/authService';
 
 export const unstable_settings = {
@@ -19,6 +20,9 @@ export default function RootLayout() {
   useEffect(() => {
     let active = true;
     async function routeGate() {
+      await migrateVaultToSqliteIfNeeded();
+      if (!active) return;
+
       const onboardingDone = await authService.isOnboardingDone();
       if (!active) return;
       if (!onboardingDone && pathname !== "/onboarding") {
