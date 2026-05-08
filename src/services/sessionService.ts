@@ -1,9 +1,10 @@
 import * as Crypto from "expo-crypto";
 
+import type { CoverageCellEntity } from "@/src/data/gridEntities";
 import { sessionRepository } from "@/src/data/sessionRepository";
 import {
-  generateCoverageFromTrajectory,
-  persistCoverageCells,
+    generateCoverageFromTrajectory,
+    persistCoverageCells,
 } from "@/src/services/GridService";
 import { sha256 } from "@/src/utils/sha256";
 
@@ -24,14 +25,7 @@ export interface MarkedEvent {
   id: string;
   timestamp: number;
   location: GpsPoint;
-  type:
-    | "metal"
-    | "noise"
-    | "anomaly"
-    | "other"
-    | "auto"
-    | "manual"
-    | "find";
+  type: "metal" | "noise" | "anomaly" | "other" | "auto" | "manual" | "find";
   classification?: string;
   signalStrength?: number;
   signal?: number;
@@ -66,6 +60,10 @@ export interface Session {
   };
   hash?: string;
   lockedAt?: number;
+  // PHASE 4 : Real-time grid buffer
+  coverageCells: CoverageCellEntity[];
+  lastGridUpdateMs: number;
+  gridUpdateInterval: number; // ms min between grid updates (throttle)
 }
 
 class SessionService {
@@ -85,6 +83,10 @@ class SessionService {
       metadata: {
         privateMode: false,
       },
+      // PHASE 4 : Initialize real-time grid buffer
+      coverageCells: [],
+      lastGridUpdateMs: 0,
+      gridUpdateInterval: 500, // max 2 updates/sec
     };
 
     await sessionRepository.insertSession(session);
@@ -117,7 +119,9 @@ class SessionService {
   async getCurrentSession(): Promise<Session | null> {
     try {
       if (this.currentSessionId) {
-        const session = await sessionRepository.getSessionById(this.currentSessionId);
+        const session = await sessionRepository.getSessionById(
+          this.currentSessionId,
+        );
         if (session) return session;
       }
 
@@ -178,11 +182,19 @@ class SessionService {
         lockedAt,
       };
 
-      const coverageCells = await generateCoverageFromTrajectory({
-        sessionId,
-        gpsPoints: closed.gpsTrace,
-        cellSizeMeters: 1,
-      });
+      // PHASE 4 : Use real-time buffer instead of re-generating
+      let coverageCells = closed.coverageCells;
+
+      // Fallback: if buffer is empty, generate from full trajectory
+      if (!coverageCells || coverageCells.length === 0) {
+        coverageCells = await generateCoverageFromTrajectory({
+          sessionId,
+          gpsPoints: closed.gpsTrace,
+          cellSizeMeters: 1,
+        });
+      }
+
+      // Persist final cells
       await persistCoverageCells(null, coverageCells);
 
       closed.hash = await sha256(this.buildCanonical(closed));
@@ -260,7 +272,7 @@ class SessionService {
         notes,
         photoScale,
         dracReminderAt: isArtifact
-          ? event.dracReminderAt ?? Date.now() + 24 * 60 * 60 * 1000
+          ? (event.dracReminderAt ?? Date.now() + 24 * 60 * 60 * 1000)
           : undefined,
         dracReminderSeenAt: isArtifact ? event.dracReminderSeenAt : undefined,
       });
@@ -279,15 +291,17 @@ class SessionService {
     }
   }
 
-  async getDueDracReminders(now = Date.now()): Promise<
-    { session: Session; event: MarkedEvent }[]
-  > {
+  async getDueDracReminders(
+    now = Date.now(),
+  ): Promise<{ session: Session; event: MarkedEvent }[]> {
     const due = await sessionRepository.getDueDracReminders(now);
     const reminders: { session: Session; event: MarkedEvent }[] = [];
 
     for (const item of due) {
       const session = await sessionRepository.getSessionById(item.sessionId);
-      const event = session?.events.find((candidate) => candidate.id === item.eventId);
+      const event = session?.events.find(
+        (candidate) => candidate.id === item.eventId,
+      );
       if (session && event) {
         reminders.push({ session, event });
       }
@@ -296,7 +310,10 @@ class SessionService {
     return reminders;
   }
 
-  async markDracReminderSeen(sessionId: string, eventId: string): Promise<void> {
+  async markDracReminderSeen(
+    sessionId: string,
+    eventId: string,
+  ): Promise<void> {
     const session = await sessionRepository.getSessionById(sessionId);
     const event = session?.events.find((item) => item.id === eventId);
     if (!event) return;

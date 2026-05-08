@@ -1,17 +1,17 @@
 import type {
-  ConfidenceLevel,
-  CoverageCellEntity,
+    ConfidenceLevel,
+    CoverageCellEntity,
 } from "@/src/data/gridEntities";
 import { sessionRepository } from "@/src/data/sessionRepository";
-import type { GpsPoint } from "@/src/services/sessionService";
 import {
-  calculateAdaptiveRadius,
-  calculateCellCoords,
-  calculateCellId,
-  cellIdToCoords,
-  coordsToCellId,
-  getCellCenter,
+    calculateAdaptiveRadius,
+    calculateCellCoords,
+    calculateCellId,
+    cellIdToCoords,
+    coordsToCellId,
+    getCellCenter,
 } from "@/src/services/GpsQualityService";
+import type { GpsPoint } from "@/src/services/sessionService";
 import { haversineMeters } from "@/src/utils/distance";
 
 export interface GenerateCoverageParams {
@@ -108,12 +108,7 @@ export function getAllCellsInRadius(
     for (let dy = -searchRadius; dy <= searchRadius; dy += 1) {
       const cellId = coordsToCellId(cellX + dx, cellY + dy, cellSizeMeters);
       const cellCenter = getCellCenter(cellId);
-      const dist = haversineMeters(
-        lat,
-        lon,
-        cellCenter.lat,
-        cellCenter.lon,
-      );
+      const dist = haversineMeters(lat, lon, cellCenter.lat, cellCenter.lon);
       if (dist <= radiusMeters) {
         cells.push(cellId);
       }
@@ -132,6 +127,80 @@ export function confidenceOrder(confidenceLevel: ConfidenceLevel): number {
     case "LOW":
       return 1;
   }
+}
+
+/**
+ * PHASE 4: Deduplicate coverage cells, keeping highest confidence per cellId
+ * Used for real-time grid buffer merging to avoid duplicates and maintain
+ * the best available confidence level for each cell.
+ */
+export function deduplicateCells(
+  cells: CoverageCellEntity[],
+): CoverageCellEntity[] {
+  const map = new Map<string, CoverageCellEntity>();
+
+  for (const cell of cells) {
+    const key = cell.cellId;
+    const existing = map.get(key);
+
+    // Keep highest confidence
+    if (
+      !existing ||
+      confidenceOrder(cell.confidenceLevel) >
+        confidenceOrder(existing.confidenceLevel)
+    ) {
+      map.set(key, cell);
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+/**
+ * PHASE 4: Generate coverage cells for a single GPS point (real-time grid update)
+ * Returns CoverageCellEntity[] for a fresh point, used in explore.tsx for live grid animation.
+ */
+export function generateCellsFromPoint(
+  sessionId: string,
+  point: GpsPoint,
+  cellSizeMeters: 1 | 2 = 1,
+): CoverageCellEntity[] {
+  if (!isValidPoint(point)) return [];
+
+  const confidenceLevel = point.confidenceLevel ?? "LOW";
+  const accuracyMeters = point.accuracyMeters ?? point.accuracy;
+  const speedMps = point.speedMps ?? 0;
+
+  const radius = calculateAdaptiveRadius({
+    speedMps,
+    accuracyMeters,
+    confidenceLevel,
+  });
+
+  const cellIds = getAllCellsInRadius(
+    point.lat,
+    point.lon,
+    radius,
+    cellSizeMeters,
+  );
+  const cells: CoverageCellEntity[] = [];
+
+  for (const cellId of cellIds) {
+    const center = getCellCenter(cellId);
+    cells.push({
+      cellId,
+      sessionId,
+      centerLat: center.lat,
+      centerLon: center.lon,
+      cellSizeMeter: cellSizeMeters,
+      radiusUsedMeters: radius,
+      confidenceLevel,
+      confidenceSource: `gps_accuracy_${accuracyMeters.toFixed(1)}m`,
+      timestamp: point.timestamp,
+    });
+  }
+
+  return cells;
 }
 
 export function getCellCenterForPoint(

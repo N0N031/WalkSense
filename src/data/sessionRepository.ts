@@ -221,6 +221,22 @@ class SessionRepository {
     });
   }
 
+  async getCoverageCellsBySession(
+    sessionId: string,
+    limit = 100,
+  ): Promise<CoverageCellEntity[]> {
+    const db = await getDb();
+    return await db.getAllAsync<CoverageCellEntity>(
+      `SELECT *
+       FROM coverage_cells
+       WHERE sessionId = ?
+       ORDER BY timestamp DESC
+       LIMIT ?`,
+      sessionId,
+      limit,
+    );
+  }
+
   private async hydrateSessions(rows: SessionRow[]): Promise<Session[]> {
     if (rows.length === 0) return [];
 
