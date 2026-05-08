@@ -116,39 +116,44 @@ export default function ExploreScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      loadCurrentSession().then((current) => {
-        if (!active || !current) return;
-        setInitialDistance(current.distance ?? 0);
-        syncElapsed(
-          current.duration ||
-            Math.max(0, Math.floor((Date.now() - current.startTime) / 1000)),
-        );
-        if (current.status === "active" || current.status === "running") {
-          startTimer();
-          startTracking((point) => {
-            persistLiveGpsPoint(current.id, point);
-          });
-        }
-      });
-      sessionService.getDueDracReminders().then((reminders) => {
-        const reminder = reminders[0];
-        if (!active || !reminder) return;
-        Alert.alert(
-          "Rappel DRAC 24h",
-          "Une trouvaille classee Artefact arrive a l'echeance de declaration.",
-          [
-            { text: "Plus tard", style: "cancel" },
-            {
-              text: "Marquer vu",
-              onPress: () =>
-                sessionService.markDracReminderSeen(
-                  reminder.session.id,
-                  reminder.event.id,
-                ),
-            },
-          ],
-        );
-      });
+      loadCurrentSession()
+        .then((current) => {
+          if (!active || !current) return;
+          setInitialDistance(current.distance ?? 0);
+          syncElapsed(
+            current.duration ||
+              Math.max(0, Math.floor((Date.now() - current.startTime) / 1000)),
+          );
+          if (current.status === "active" || current.status === "running") {
+            startTimer();
+            startTracking((point) => {
+              persistLiveGpsPoint(current.id, point);
+            });
+          }
+        })
+        .catch((err) => console.error("loadCurrentSession error:", err));
+      sessionService
+        .getDueDracReminders()
+        .then((reminders) => {
+          const reminder = reminders[0];
+          if (!active || !reminder) return;
+          Alert.alert(
+            "Rappel DRAC 24h",
+            "Une trouvaille classee Artefact arrive a l'echeance de declaration.",
+            [
+              { text: "Plus tard", style: "cancel" },
+              {
+                text: "Marquer vu",
+                onPress: () =>
+                  sessionService.markDracReminderSeen(
+                    reminder.session.id,
+                    reminder.event.id,
+                  ),
+              },
+            ],
+          );
+        })
+        .catch((err) => console.error("getDueDracReminders error:", err));
       return () => {
         active = false;
       };

@@ -8,7 +8,7 @@ export function useBle() {
 
   useEffect(() => {
     const unsubscribe = bleService.subscribe((m) => setMetrics(m));
-    return () => unsubscribe();
+    return () => unsubscribe?.();
   }, []);
 
   const connect = useCallback(async (device: BleDevice) => {
