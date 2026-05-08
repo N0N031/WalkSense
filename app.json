@@ -9,14 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0F0F0F",
         "foregroundImage": "./assets/images/walksense-icon.png",
-        "backgroundImage": "./assets/images/walksense-icon.png",
-        "monochromeImage": "./assets/images/walksense-icon.png"
+        "backgroundColor": "#0F0F0F"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -27,6 +25,14 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "WalkSense utilise votre position pour enregistrer vos sessions de détection terrain.",
+          "locationWhenInUsePermission": "WalkSense utilise votre position pour enregistrer vos sessions de détection terrain.",
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -42,7 +48,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     }
   }
 }
