@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/src/constants/colors";
 import { MarkedEvent } from "@/src/services/sessionService";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -13,25 +13,23 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const OPTIONS = ["Monnaie", "Bijou", "Ferreux", "Dechet", "Artefact", "Autre"];
-const PHOTO_SCALES: { label: string; value: MarkedEvent["photoScale"] }[] = [
-  { label: "Aucune", value: "none" },
-  { label: "Piece", value: "coin" },
-  { label: "Regle", value: "rule" },
-  { label: "Main", value: "hand" },
+
+type PhotoScale = MarkedEvent["photoScale"];
+
+const SCALE_OPTIONS: { value: NonNullable<PhotoScale>; label: string; icon: React.ComponentProps<typeof Ionicons>["name"] }[] = [
+  { value: "none",  label: "Aucune", icon: "close-outline" },
+  { value: "coin",  label: "Pièce",  icon: "ellipse-outline" },
+  { value: "rule",  label: "Règle",  icon: "resize-outline" },
+  { value: "hand",  label: "Main",   icon: "hand-left-outline" },
 ];
 
 interface ClassifySheetProps {
   visible: boolean;
   event: MarkedEvent | null;
   onClose: () => void;
-  onClassify: (
-    classification: string,
-    notes?: string,
-    photoScale?: MarkedEvent["photoScale"],
-  ) => void;
+  onClassify: (classification: string, notes?: string, photoScale?: PhotoScale) => void;
   onRefill?: () => void;
 }
 
@@ -42,45 +40,43 @@ export default function ClassifySheet({
   onClassify,
   onRefill,
 }: ClassifySheetProps) {
-  const insets = useSafeAreaInsets();
   const [notes, setNotes] = useState("");
-  const [photoScale, setPhotoScale] = useState<MarkedEvent["photoScale"]>("none");
+  const [photoScale, setPhotoScale] = useState<NonNullable<PhotoScale>>("none");
   const [step, setStep] = useState<"classify" | "rebouchage">("classify");
   const [pendingClass, setPendingClass] = useState("");
 
-  useEffect(() => {
-    if (!visible) return;
-
-    if (event?.classification && !event.refilledAt) {
-      setPendingClass(event.classification);
-      setStep("rebouchage");
-      return;
-    }
-
-    setStep("classify");
-    setPendingClass("");
-  }, [event?.classification, event?.refilledAt, visible]);
+  const requiresRefill =
+    event?.type === "find" || event?.type === "manual";
 
   function handleClose() {
     setStep("classify");
     setNotes("");
-    setPhotoScale("none");
     setPendingClass("");
+    setPhotoScale("none");
     onClose();
   }
 
   function handleOptionPress(option: string) {
-    setPendingClass(option);
-    onClassify(option, notes.trim() || undefined, photoScale);
-    setStep("rebouchage");
+    const scale: PhotoScale = photoScale === "none" ? undefined : photoScale;
+    if (requiresRefill) {
+      setPendingClass(option);
+      onClassify(option, notes.trim() || undefined, scale);
+      setTimeout(() => {
+        setStep("rebouchage");
+      }, 150);
+    } else {
+      onClassify(option, notes.trim() || undefined, scale);
+      setNotes("");
+      setPhotoScale("none");
+    }
   }
 
   function handleRefill() {
     onRefill?.();
     setStep("classify");
     setNotes("");
-    setPhotoScale("none");
     setPendingClass("");
+    setPhotoScale("none");
   }
 
   return (
@@ -90,113 +86,124 @@ export default function ClassifySheet({
       animationType="slide"
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={insets.top}
-        style={styles.overlay}
-      >
-        <View
-          style={[
-            styles.sheet,
-            { paddingBottom: Math.max(insets.bottom + 16, 32) },
-          ]}
+      <View style={styles.overlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ width: "100%" }}
         >
           <ScrollView
+            contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.sheetContent}
           >
-            {step === "classify" ? (
-              <>
-              <View style={styles.header}>
-                <Text style={styles.title}>Classer le signal</Text>
-                <TouchableOpacity style={styles.iconButton} onPress={handleClose}>
-                  <Ionicons name="close" size={22} color={COLORS.text} />
-                </TouchableOpacity>
-              </View>
-
-              {event ? (
-                <Text style={styles.summary}>
-                  Signal {Math.round(event.signal ?? event.signalStrength ?? 0)}%
-                  {" — "}{new Date(event.timestamp).toLocaleTimeString()}
-                </Text>
-              ) : null}
-
-              <TextInput
-                style={styles.input}
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Notes"
-                placeholderTextColor={COLORS.textTertiary}
-              />
-
-              <Text style={styles.scaleLabel}>Echelle photo</Text>
-              <View style={styles.scaleRow}>
-                {PHOTO_SCALES.map((scale) => (
-                  <TouchableOpacity
-                    key={scale.value}
-                    style={[
-                      styles.scaleOption,
-                      photoScale === scale.value && styles.scaleOptionActive,
-                    ]}
-                    onPress={() => setPhotoScale(scale.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.scaleText,
-                        photoScale === scale.value && styles.scaleTextActive,
-                      ]}
+            <View style={styles.sheet}>
+              {step === "classify" ? (
+                <>
+                  <View style={styles.header}>
+                    <Text style={styles.title}>Classer le signal</Text>
+                    <TouchableOpacity
+                      style={styles.iconButton}
+                      onPress={handleClose}
                     >
-                      {scale.label}
+                      <Ionicons name="close" size={22} color={COLORS.text} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {event ? (
+                    <Text style={styles.summary}>
+                      Signal {Math.round(event.signal ?? event.signalStrength ?? 0)}%
+                      {" — "}{new Date(event.timestamp).toLocaleTimeString()}
                     </Text>
+                  ) : null}
+
+                  <TextInput
+                    style={styles.input}
+                    value={notes}
+                    onChangeText={setNotes}
+                    placeholder="Notes"
+                    placeholderTextColor={COLORS.textTertiary}
+                  />
+
+                  <Text style={styles.scaleLabel}>Échelle visible sur photo</Text>
+                  <View style={styles.scaleRow}>
+                    {SCALE_OPTIONS.map((opt) => {
+                      const active = photoScale === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={opt.value}
+                          style={[styles.scaleBtn, active && styles.scaleBtnActive]}
+                          onPress={() => setPhotoScale(opt.value)}
+                        >
+                          <Ionicons
+                            name={opt.icon}
+                            size={16}
+                            color={active ? COLORS.background : COLORS.textSecondary}
+                          />
+                          <Text
+                            style={[
+                              styles.scaleBtnText,
+                              active && styles.scaleBtnTextActive,
+                            ]}
+                          >
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <View style={styles.grid}>
+                    {OPTIONS.map((option) => (
+                      <TouchableOpacity
+                        key={option}
+                        style={styles.option}
+                        onPress={() => handleOptionPress(option)}
+                      >
+                        <Text style={styles.optionText}>{option}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.header}>
+                    <Text style={styles.title}>Rebouchage obligatoire</Text>
+                  </View>
+
+                  <View style={styles.warningBox}>
+                    <Ionicons
+                      name="warning-outline"
+                      size={18}
+                      color={COLORS.warning}
+                    />
+                    <Text style={styles.warningText}>
+                      Obligation légale et éthique : rebouchez le trou avant de
+                      quitter la zone.
+                    </Text>
+                  </View>
+
+                  <Text style={styles.classifiedLabel}>
+                    Classé :{" "}
+                    <Text style={styles.classifiedValue}>{pendingClass}</Text>
+                  </Text>
+
+                  <TouchableOpacity style={styles.refillButton} onPress={handleRefill}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={22}
+                      color={COLORS.background}
+                    />
+                    <Text style={styles.refillText}>Trou rebouché ✓</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
 
-              <View style={styles.grid}>
-                {OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option}
-                    style={styles.option}
-                    onPress={() => handleOptionPress(option)}
-                  >
-                    <Text style={styles.optionText}>{option}</Text>
+                  <TouchableOpacity style={styles.skipButton} onPress={handleClose}>
+                    <Text style={styles.skipText}>Je reboucherai plus tard</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-              </>
-            ) : (
-              <>
-              <View style={styles.header}>
-                <Text style={styles.title}>Rebouchage obligatoire</Text>
-              </View>
-
-              <View style={styles.warningBox}>
-                <Ionicons name="warning-outline" size={18} color={COLORS.warning} />
-                <Text style={styles.warningText}>
-                  Obligation légale et éthique : rebouchez le trou avant de
-                  quitter la zone.
-                </Text>
-              </View>
-
-              <Text style={styles.classifiedLabel}>
-                Classé :{" "}
-                <Text style={styles.classifiedValue}>{pendingClass}</Text>
-              </Text>
-
-              <TouchableOpacity style={styles.refillButton} onPress={handleRefill}>
-                <Ionicons name="checkmark-circle" size={22} color={COLORS.background} />
-                <Text style={styles.refillText}>Trou rebouché ✓</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.skipButton} onPress={handleClose}>
-                <Text style={styles.skipText}>Marquer plus tard</Text>
-              </TouchableOpacity>
-              </>
-            )}
+                </>
+              )}
+            </View>
           </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -208,16 +215,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.45)",
   },
   sheet: {
-    maxHeight: "88%",
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 32,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     backgroundColor: COLORS.cardBackground,
-  },
-  sheetContent: {
-    flexGrow: 1,
   },
   header: {
     flexDirection: "row",
@@ -250,45 +253,49 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     color: COLORS.text,
     backgroundColor: COLORS.background,
+    marginBottom: 14,
   },
   scaleLabel: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 12,
+    color: COLORS.textTertiary,
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
     marginBottom: 8,
   },
   scaleRow: {
     flexDirection: "row",
     gap: 8,
+    marginBottom: 14,
   },
-  scaleOption: {
+  scaleBtn: {
     flex: 1,
-    minHeight: 36,
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+    gap: 3,
+    paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.background,
   },
-  scaleOptionActive: {
+  scaleBtnActive: {
+    backgroundColor: COLORS.accent,
     borderColor: COLORS.accent,
-    backgroundColor: COLORS.surfaceRaised,
   },
-  scaleText: {
+  scaleBtnText: {
     color: COLORS.textSecondary,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
   },
-  scaleTextActive: {
-    color: COLORS.accent,
+  scaleBtnTextActive: {
+    color: COLORS.background,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
-    marginTop: 14,
   },
   option: {
     width: "31%",

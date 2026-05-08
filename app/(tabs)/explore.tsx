@@ -20,7 +20,11 @@ import { useBle } from "@/src/hooks/useBle";
 import { useGps } from "@/src/hooks/useGps";
 import { useSession } from "@/src/hooks/useSession";
 import { useTimer } from "@/src/hooks/useTimer";
-import { MarkedEvent, sessionService } from "@/src/services/sessionService";
+import {
+  GpsPoint,
+  MarkedEvent,
+  sessionService,
+} from "@/src/services/sessionService";
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -39,6 +43,7 @@ export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const {
     session,
+    setSession,
     isRunning,
     createSession,
     loadCurrentSession,
@@ -51,7 +56,6 @@ export default function ExploreScreen() {
   } = useSession();
   const {
     location,
-    gpsTrace: liveGpsTrace,
     error: gpsError,
     distance: liveDistance,
     startTracking,
@@ -82,10 +86,32 @@ export default function ExploreScreen() {
 
   const battery = ble.metrics?.battery ?? 100;
   const totalDistance = initialDistance + liveDistance;
-  const gpsTrace = [...(session?.gpsTrace ?? []), ...liveGpsTrace];
+  const gpsTrace = session?.gpsTrace ?? [];
   const userLocation = location
     ? { latitude: location.lat, longitude: location.lon }
     : null;
+
+  const persistLiveGpsPoint = useCallback(
+    (sessionId: string, point: GpsPoint) => {
+      setSession((prev) => {
+        if (!prev || prev.id !== sessionId) return prev;
+        const alreadyExists = prev.gpsTrace.some(
+          (gpsPoint) =>
+            gpsPoint.timestamp === point.timestamp &&
+            gpsPoint.lat === point.lat &&
+            gpsPoint.lon === point.lon,
+        );
+        if (alreadyExists) return prev;
+        return { ...prev, gpsTrace: [...prev.gpsTrace, point] };
+      });
+
+      sessionService.addGpsPoint(sessionId, point).catch((err) => {
+        console.error("GPS persistence error:", err);
+        setToast("Erreur sauvegarde GPS");
+      });
+    },
+    [setSession],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -100,7 +126,7 @@ export default function ExploreScreen() {
         if (current.status === "active" || current.status === "running") {
           startTimer();
           startTracking((point) => {
-            sessionService.addGpsPoint(current.id, point);
+            persistLiveGpsPoint(current.id, point);
           });
         }
       });
@@ -126,7 +152,13 @@ export default function ExploreScreen() {
       return () => {
         active = false;
       };
-    }, [loadCurrentSession, startTimer, startTracking, syncElapsed]),
+    }, [
+      loadCurrentSession,
+      persistLiveGpsPoint,
+      startTimer,
+      startTracking,
+      syncElapsed,
+    ]),
   );
 
   const handleStart = useCallback(async () => {
@@ -141,10 +173,17 @@ export default function ExploreScreen() {
     resetTimer();
     startTimer();
     await startTracking((point) => {
-      sessionService.addGpsPoint(newSession.id, point);
+      persistLiveGpsPoint(newSession.id, point);
     });
     setToast("Session demarree");
-  }, [createSession, resetGps, resetTimer, startTimer, startTracking]);
+  }, [
+    createSession,
+    persistLiveGpsPoint,
+    resetGps,
+    resetTimer,
+    startTimer,
+    startTracking,
+  ]);
 
   const handlePause = useCallback(async () => {
     const updated = await pause();
@@ -160,10 +199,10 @@ export default function ExploreScreen() {
     if (!updated) return;
     resumeTimer();
     await startTracking((point) => {
-      sessionService.addGpsPoint(session.id, point);
+      persistLiveGpsPoint(session.id, point);
     });
     setToast("Session reprise");
-  }, [resume, resumeTimer, session, startTracking]);
+  }, [persistLiveGpsPoint, resume, resumeTimer, session, startTracking]);
 
   const handleEnd = useCallback(() => {
     if (!session) return;

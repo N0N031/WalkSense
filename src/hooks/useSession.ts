@@ -67,7 +67,7 @@ export function useSession() {
       try {
         await sessionService.addEvent(session.id, event);
         setSession((prev) =>
-          prev ? { ...prev, events: [...prev.events, event] } : null,
+          prev ? { ...prev, events: [event, ...prev.events] } : null,
         );
         return true;
       } catch (err) {
@@ -206,6 +206,7 @@ export function useSession() {
 
   return {
     session,
+    setSession,
     isRunning,
     isLoading,
     error,
