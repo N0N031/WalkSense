@@ -109,7 +109,7 @@ export default function ExploreScreen() {
       }
 
       try {
-        // PHASE 2 : Try to load persisted cells from DB
+
         const persisted = await sessionRepository.getCoverageCellsBySession(
           session.id,
           GRID_DISPLAY_LIMIT,
@@ -125,7 +125,10 @@ export default function ExploreScreen() {
         // PHASE 3: Generate preview from last N GPS points
         const previewPoints = gpsTrace.slice(-GRID_PREVIEW_POINT_LIMIT);
         if (previewPoints.length > 0) {
-          const preview = generateCoverageFromTrajectory(previewPoints);
+          const preview = await generateCoverageFromTrajectory({
+            sessionId: session.id,
+            gpsPoints: previewPoints,
+          });
           if (active) {
             setCoverageCells(preview.slice(0, GRID_DISPLAY_LIMIT));
           }
@@ -268,14 +271,14 @@ export default function ExploreScreen() {
     try {
       const event: MarkedEvent = {
         id: makeId(),
-        sessionId: session.id,
         type: "manual",
-        lat: location.lat,
-        lon: location.lon,
+        location: {
+          lat: location.lat,
+          lon: location.lon,
+          accuracy: location.accuracy ?? 0,
+          timestamp: Date.now(),
+        },
         timestamp: Date.now(),
-        classified: false,
-        classification: null,
-        notes: null,
       };
 
       await addEvent(event);
@@ -333,7 +336,7 @@ export default function ExploreScreen() {
   );
 
   // ✅ View: No active session
-  if (!session || session.status === "closed") {
+  if (!session || session.status === "completed") {
     return (
       <View style={styles.container}>
         <View style={styles.empty}>
