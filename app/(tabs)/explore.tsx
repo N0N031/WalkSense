@@ -110,7 +110,10 @@ export default function ExploreScreen() {
       }
 
       try {
+<<<<<<< HEAD
         // PHASE 2 : Try to load persisted cells from DB
+=======
+>>>>>>> de97fd399c5e04fca26ff3ad529080680c996a45
         const persisted = await sessionRepository.getCoverageCellsBySession(
           session.id,
           GRID_DISPLAY_LIMIT,
@@ -145,6 +148,8 @@ export default function ExploreScreen() {
   }, [session?.id, session?.coverageCells, gpsTrace]);
 
   // ✅ Persist GPS point to state + DB
+  }, [gpsTrace, session?.id, session?.coverageCells]);
+
   const persistLiveGpsPoint = useCallback(
     (sessionId: string, point: GpsPoint) => {
       setSession((prev) => {
