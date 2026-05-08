@@ -44,3 +44,12 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Documents stratégiques confidentiels
+*.docx
+*.pdf
+/docs/strategy/
+/docs/referentiel/
+RockSense_*
+GeoSense_*
+WalkSense_Referentiel_*
