@@ -9,7 +9,10 @@
       "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
       "Bash(gh --version)",
       "Bash(gh auth *)",
-      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status)"
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status)",
+      "Bash(find /c/Users/arnau/Downloads -name \"walksense-mark*\" 2>/dev/null | head -10; find /c/Users/arnau/Desktop -name \"walksense-mark*\" 2>/dev/null | head -10)",
+      "Read(//c/Users/arnau/Downloads/**)",
+      "Read(//c/Users/arnau/Desktop/**)"
     ]
   }
 }
