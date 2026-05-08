@@ -95,19 +95,21 @@ export default function ExploreScreen() {
 
     let active = true;
 
-    const loadGrid = async () => {
-      try {
-        // PHASE 4A: Use real-time buffer first
-        if (session.coverageCells && session.coverageCells.length > 0) {
-          if (active) {
-            setCoverageCells(
-              session.coverageCells.slice(0, GRID_DISPLAY_LIMIT),
-            );
-          }
-          return;
-        }
+    async function loadGrid() {
+      if (!session?.id) {
+        setCoverageCells([]);
+        return;
+      }
 
-        // PHASE 4B: Load persisted cells from DB
+      // PHASE 4 : Display real-time buffer first
+      if (session.coverageCells && session.coverageCells.length > 0) {
+        if (active) {
+          setCoverageCells(session.coverageCells.slice(0, GRID_DISPLAY_LIMIT));
+        }
+        return;
+      }
+
+      try {
         const persisted = await sessionRepository.getCoverageCellsBySession(
           session.id,
           GRID_DISPLAY_LIMIT,
@@ -142,6 +144,8 @@ export default function ExploreScreen() {
   }, [session?.id, session?.coverageCells, gpsTrace]);
 
   // ✅ Persist GPS point to state + DB
+  }, [gpsTrace, session?.id, session?.coverageCells]);
+
   const persistLiveGpsPoint = useCallback(
     (sessionId: string, point: GpsPoint) => {
       setSession((prev) => {
