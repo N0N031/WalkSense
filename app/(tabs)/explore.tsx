@@ -10,6 +10,7 @@ import { sessionRepository } from "@/src/data/sessionRepository";
 import { useGps } from "@/src/hooks/useGps";
 import { useSession } from "@/src/hooks/useSession";
 import { useTimer } from "@/src/hooks/useTimer";
+import { generateCoverageFromTrajectory } from "@/src/services/GridService";
 import {
     deduplicateCells,
     generateCellsFromPoint,
