@@ -49,8 +49,8 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/walksense-mark-512.png",
-          "imageWidth": 200,
+          "image": "./assets/images/walksense-icon.png",
+          "imageWidth": 280,
           "resizeMode": "contain",
           "backgroundColor": "#0F0F0F",
           "dark": {
