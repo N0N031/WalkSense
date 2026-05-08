@@ -95,19 +95,22 @@ export default function ExploreScreen() {
 
     let active = true;
 
-    const loadGrid = async () => {
-      try {
-        // PHASE 4A: Use real-time buffer first
-        if (session.coverageCells && session.coverageCells.length > 0) {
-          if (active) {
-            setCoverageCells(
-              session.coverageCells.slice(0, GRID_DISPLAY_LIMIT),
-            );
-          }
-          return;
-        }
+    async function loadGrid() {
+      if (!session?.id) {
+        setCoverageCells([]);
+        return;
+      }
 
-        // PHASE 4B: Load persisted cells from DB
+      // PHASE 1 : Display real-time buffer first
+      if (session.coverageCells && session.coverageCells.length > 0) {
+        if (active) {
+          setCoverageCells(session.coverageCells.slice(0, GRID_DISPLAY_LIMIT));
+        }
+        return;
+      }
+
+      try {
+        // PHASE 2 : Try to load persisted cells from DB
         const persisted = await sessionRepository.getCoverageCellsBySession(
           session.id,
           GRID_DISPLAY_LIMIT,
@@ -120,7 +123,7 @@ export default function ExploreScreen() {
           return;
         }
 
-        // PHASE 4C: Generate preview from last N GPS points
+        // PHASE 3: Generate preview from last N GPS points
         const previewPoints = gpsTrace.slice(-GRID_PREVIEW_POINT_LIMIT);
         if (previewPoints.length > 0) {
           const preview = generateCoverageFromTrajectory(previewPoints);
@@ -132,7 +135,7 @@ export default function ExploreScreen() {
         console.warn("Failed to load coverage cells:", err);
         if (active) setCoverageCells([]);
       }
-    };
+    }
 
     loadGrid();
 
@@ -165,7 +168,7 @@ export default function ExploreScreen() {
           const lastUpdate = updated.lastGridUpdateMs || 0;
 
           // Check throttle: only update if enough time has passed
-          if (now - lastUpdate > updated.gridUpdateInterval) {
+          if (now - lastUpdate > (updated.gridUpdateInterval ?? 1000)) {
             // Calculate cells from fresh point only
             const affectedCells = generateCellsFromPoint(sessionId, point, 1);
 
