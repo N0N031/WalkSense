@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   StyleSheet,
@@ -16,9 +16,12 @@ import SessionHud from "@/src/components/SessionHud";
 import SessionMap from "@/src/components/SessionMap";
 import Toast from "@/src/components/Toast";
 import { COLORS } from "@/src/constants/colors";
+import type { CoverageCellEntity } from "@/src/data/gridEntities";
+import { sessionRepository } from "@/src/data/sessionRepository";
 import { useGps } from "@/src/hooks/useGps";
 import { useSession } from "@/src/hooks/useSession";
 import { useTimer } from "@/src/hooks/useTimer";
+import { generateCoverageFromTrajectory } from "@/src/services/GridService";
 import {
   GpsPoint,
   MarkedEvent,
@@ -38,6 +41,9 @@ function formatDuration(seconds: number): string {
 function makeId() {
   return Math.random().toString(36).slice(2, 11);
 }
+
+const GRID_DISPLAY_LIMIT = 100;
+const GRID_PREVIEW_POINT_LIMIT = 100;
 
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
@@ -76,12 +82,55 @@ export default function ExploreScreen() {
   const [classifyVisible, setClassifyVisible] = useState(false);
   const [initialDistance, setInitialDistance] = useState(0);
   const [redFilter, setRedFilter] = useState(false);
+  const [coverageCells, setCoverageCells] = useState<CoverageCellEntity[]>([]);
+  const [showGrid, setShowGrid] = useState(true);
 
   const totalDistance = initialDistance + liveDistance;
   const gpsTrace = session?.gpsTrace ?? [];
   const userLocation = location
     ? { latitude: location.lat, longitude: location.lon }
     : null;
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadGrid() {
+      if (!session?.id) {
+        setCoverageCells([]);
+        return;
+      }
+
+      try {
+        const persisted = await sessionRepository.getCoverageCellsBySession(
+          session.id,
+          GRID_DISPLAY_LIMIT,
+        );
+        if (!active) return;
+        if (persisted.length > 0) {
+          setCoverageCells(persisted);
+          return;
+        }
+
+        const previewPoints = gpsTrace.slice(-GRID_PREVIEW_POINT_LIMIT);
+        const preview = await generateCoverageFromTrajectory({
+          sessionId: session.id,
+          gpsPoints: previewPoints,
+          cellSizeMeters: 1,
+        });
+        if (active) {
+          setCoverageCells(preview.slice(0, GRID_DISPLAY_LIMIT));
+        }
+      } catch (err) {
+        console.warn("Failed to load coverage cells:", err);
+        if (active) setCoverageCells([]);
+      }
+    }
+
+    loadGrid();
+    return () => {
+      active = false;
+    };
+  }, [gpsTrace, session?.id]);
 
   const persistLiveGpsPoint = useCallback(
     (sessionId: string, point: GpsPoint) => {
@@ -316,6 +365,8 @@ export default function ExploreScreen() {
         gpsTrace={gpsTrace}
         userLocation={userLocation}
         events={session.events}
+        coverageCells={coverageCells}
+        showGrid={showGrid}
         onEventPress={openClassify}
       />
 
@@ -331,6 +382,21 @@ export default function ExploreScreen() {
           name={redFilter ? "moon" : "moon-outline"}
           size={18}
           color={redFilter ? COLORS.background : COLORS.accent}
+        />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.gridToggleButton,
+          { top: insets.top + 142 },
+          showGrid && styles.gridToggleButtonActive,
+        ]}
+        onPress={() => setShowGrid((value) => !value)}
+      >
+        <Ionicons
+          name="grid-outline"
+          size={18}
+          color={showGrid ? COLORS.background : COLORS.accent}
         />
       </TouchableOpacity>
 
@@ -467,6 +533,21 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.cardBackground,
   },
   redFilterButtonActive: {
+    backgroundColor: COLORS.accent,
+  },
+  gridToggleButton: {
+    position: "absolute",
+    right: 14,
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.cardBackground,
+  },
+  gridToggleButtonActive: {
     backgroundColor: COLORS.accent,
   },
   redFilterOverlay: {

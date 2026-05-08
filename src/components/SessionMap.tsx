@@ -1,4 +1,5 @@
 import { COLORS } from "@/src/constants/colors";
+import type { CoverageCellEntity } from "@/src/data/gridEntities";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -9,9 +10,16 @@ export interface SessionMapProps {
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
+  coverageCells?: CoverageCellEntity[];
+  showGrid?: boolean;
 }
 
-export default function SessionMap({ events, userLocation }: SessionMapProps) {
+export default function SessionMap({
+  events,
+  userLocation,
+  coverageCells = [],
+  showGrid = true,
+}: SessionMapProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>🗺️</Text>
@@ -26,6 +34,9 @@ export default function SessionMap({ events, userLocation }: SessionMapProps) {
       {events.length > 0 && (
         <Text style={styles.count}>{events.length} marqueur(s)</Text>
       )}
+      {showGrid && coverageCells.length > 0 ? (
+        <Text style={styles.count}>{coverageCells.length} cellule(s)</Text>
+      ) : null}
     </View>
   );
 }
