@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HapticTab } from '@/components/haptic-tab';
+import { HapticTab } from '@/src/components/haptic-tab';
 import { COLORS } from '@/src/constants/colors';
 
 export default function TabLayout() {
