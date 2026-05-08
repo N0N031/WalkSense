@@ -47,7 +47,7 @@ export default function OnboardingScreen() {
         style={[
           styles.container,
           {
-            paddingTop: Math.max(insets.top, 20),
+            paddingTop: insets.top + 12,
             paddingBottom: Math.max(insets.bottom, 20),
           },
         ]}

@@ -79,7 +79,7 @@ export default function AuthScreen() {
         style={[
           styles.container,
           {
-            paddingTop: Math.max(insets.top, 20),
+            paddingTop: insets.top + 12,
             paddingBottom: Math.max(insets.bottom, 20),
           },
         ]}
@@ -89,7 +89,7 @@ export default function AuthScreen() {
         <Text style={styles.title}>{hasAuth ? "Déverrouiller" : "Créer le code"}</Text>
         <Text style={styles.subtitle}>
           {hasAuth
-            ? "Entrez le code local pour ouvrir RockSense."
+            ? "Entrez le code local pour ouvrir WalkSense."
             : "Ce code protege les sessions stockees sur votre appareil."}
         </Text>
 

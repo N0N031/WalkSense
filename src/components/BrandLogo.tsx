@@ -22,7 +22,7 @@ export default function BrandLogo({
   return (
     <View style={compact ? styles.compactFrame : styles.frame}>
       <Image
-        source={require("@/assets/images/walksense-mark-512.png")}
+        source={require("@/assets/images/walksense-mark-source-transparent.png")}
         resizeMode="contain"
         style={[logoStyle, style]}
       />
@@ -35,18 +35,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logo: {
-    width: 240,
-    height: 255,
+    width: 156,
+    height: 156,
   },
   compactFrame: {
     alignItems: "flex-start",
   },
   compactLogo: {
-    width: 74,
-    height: 74,
+    width: 48,
+    height: 48,
   },
   largeLogo: {
-    width: 250,
-    height: 250,
+    width: 136,
+    height: 136,
   },
 });

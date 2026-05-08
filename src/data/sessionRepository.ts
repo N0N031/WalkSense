@@ -142,10 +142,7 @@ class SessionRepository {
   }
 
   async insertGpsPoint(sessionId: string, point: GpsPoint): Promise<void> {
-    const db = await getDb();
-    await db.withTransactionAsync(async () => {
-      await this.insertGpsPointRow(sessionId, point);
-    });
+    await this.insertGpsPointRow(sessionId, point);
   }
 
   async updateSessionLock(

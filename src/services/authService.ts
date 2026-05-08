@@ -82,7 +82,7 @@ class AuthService {
     if (!available) return false;
 
     const result = await LocalAuthentication.authenticateAsync({
-      promptMessage: "Déverrouiller RockSense",
+      promptMessage: "Déverrouiller WalkSense",
       cancelLabel: "Code",
       disableDeviceFallback: true,
     });

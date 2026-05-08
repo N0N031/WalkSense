@@ -26,6 +26,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   ImageBackground,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -66,7 +67,6 @@ export default function ExploreScreen() {
   } = useSession();
   const {
     location,
-    error: gpsError,
     distance: liveDistance,
     isTracking,
     startTracking,
@@ -210,7 +210,7 @@ export default function ExploreScreen() {
 
     // Persist to DB asynchronously (non-blocking)
     sessionService.addGpsPoint(sessionId, gpsPoint).catch((err) => {
-      console.error("GPS persistence error:", err);
+      console.warn("GPS point skipped:", err);
     });
   }, [location, sessionId, setSession, isRunning]);
 
@@ -368,7 +368,17 @@ export default function ExploreScreen() {
           style={styles.emptyBackground}
         >
           <View style={styles.emptyOverlay} />
-          <View style={styles.emptyContent}>
+          <ScrollView
+            style={styles.emptyScroll}
+            contentContainerStyle={[
+              styles.emptyContent,
+              {
+                paddingTop: insets.top + 12,
+                paddingBottom: Math.max(insets.bottom + 104, 120),
+              },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.emptyBrand}>
               <BrandLogo compact />
               <View>
@@ -387,16 +397,16 @@ export default function ExploreScreen() {
 
             <View style={styles.emptyCopyBlock}>
               <Text style={styles.emptyLead}>
-                Tracez vos prospections terrain avec precision.
+                Tracez vos prospections terrain avec précision.
               </Text>
               <Text style={styles.emptySubcopy}>
-                Enregistrez chaque decouverte{"\n"}et restez organise.
+                Enregistrez chaque découverte et restez organisé.
               </Text>
             </View>
 
             <TouchableOpacity style={styles.startButton} onPress={handleStart}>
               <Ionicons name="location" size={25} color={COLORS.accent} />
-              <Text style={styles.startText}>DEMARRER UNE SESSION</Text>
+              <Text style={styles.startText}>DÉMARRER UNE SESSION</Text>
               <Ionicons name="chevron-forward" size={22} color={COLORS.accent} />
             </TouchableOpacity>
 
@@ -406,7 +416,7 @@ export default function ExploreScreen() {
               </View>
               <View style={styles.gpsStatusText}>
                 <Text style={styles.gpsStatusTitle}>
-                  Signal GPS en cours d acquisition...
+                  Signal GPS en cours d’acquisition…
                 </Text>
                 <Text style={styles.gpsStatusSubtitle}>
                   Veuillez patienter quelques instants
@@ -414,15 +424,8 @@ export default function ExploreScreen() {
               </View>
               <View style={styles.gpsStatusDot} />
             </View>
-          </View>
+          </ScrollView>
         </ImageBackground>
-        <View
-          style={[
-            styles.emptyTabSpacer,
-            { height: Math.max(insets.bottom, 16) + 88 },
-          ]}
-        />
-        <Toast message={gpsError} onDone={() => setToast(null)} />
       </View>
     );
   }
@@ -430,7 +433,7 @@ export default function ExploreScreen() {
   // ✅ View: Active session
   return (
     <View style={styles.container}>
-      <View style={[styles.mapHeader, { top: Math.max(insets.top, 18) }]}>
+      <View style={[styles.mapHeader, { top: insets.top + 12 }]}>
         <View style={styles.brandRow}>
           <BrandLogo compact />
           <View>
@@ -509,7 +512,12 @@ export default function ExploreScreen() {
           onEventPress={openClassify}
         />
       ) : (
-        <View style={styles.compactDock}>
+        <View
+          style={[
+            styles.compactDock,
+            { bottom: Math.max(insets.bottom, 8) + 156 },
+          ]}
+        >
           <TouchableOpacity style={styles.compactAction} onPress={handleAddMarker}>
             <Ionicons name="add" size={24} color={COLORS.primary} />
             <Text style={styles.compactActionText}>{session.events.length}</Text>
@@ -530,7 +538,15 @@ export default function ExploreScreen() {
       <View
         style={[
           panelsCollapsed ? styles.controlsFloating : styles.controls,
-          { paddingBottom: Math.max(insets.bottom, 12) },
+          panelsCollapsed
+            ? {
+                bottom: Math.max(insets.bottom, 8) + 76,
+                paddingBottom: 12,
+              }
+            : {
+                marginBottom: Math.max(insets.bottom, 8) + 64,
+                paddingBottom: 12,
+              },
         ]}
       >
         {isRunning ? (
@@ -563,7 +579,7 @@ export default function ExploreScreen() {
         onClassify={handleClassify}
         onRefill={handleRefill}
       />
-      <Toast message={toast || gpsError} onDone={() => setToast(null)} />
+      <Toast message={toast} onDone={() => setToast(null)} />
       {redFilter ? <View style={styles.redFilterOverlay} /> : null}
     </View>
   );
@@ -650,13 +666,15 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.38)",
   },
-  emptyContent: {
+  emptyScroll: {
     flex: 1,
+  },
+  emptyContent: {
+    flexGrow: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingTop: 40,
-    gap: 22,
+    gap: 14,
   },
   emptyBrand: {
     flexDirection: "row",
@@ -665,14 +683,14 @@ const styles = StyleSheet.create({
   },
   emptyBrandTitle: {
     color: COLORS.accent,
-    fontSize: 38,
+    fontSize: 32,
     fontWeight: "900",
   },
   emptyBrandSubtitle: {
     color: COLORS.textSecondary,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 7,
+    letterSpacing: 5,
     marginTop: 4,
   },
   emptyDivider: {
@@ -701,21 +719,19 @@ const styles = StyleSheet.create({
   },
   emptyLead: {
     color: COLORS.text,
-    fontSize: 25,
-    lineHeight: 34,
+    fontSize: 21,
+    lineHeight: 29,
     fontWeight: "900",
     textAlign: "center",
-    maxWidth: 620,
+    width: "88%",
   },
   emptySubcopy: {
     color: COLORS.textSecondary,
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: "600",
     textAlign: "center",
-  },
-  emptyTabSpacer: {
-    backgroundColor: COLORS.background,
+    width: "88%",
   },
   startButton: {
     flexDirection: "row",
@@ -723,10 +739,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 12,
     alignSelf: "stretch",
-    minHeight: 74,
-    marginHorizontal: 10,
+    minHeight: 62,
+    marginHorizontal: 32,
     paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingVertical: 14,
     borderRadius: 12,
     backgroundColor: "rgba(26, 58, 26, 0.82)",
     borderWidth: 1,
@@ -745,7 +761,7 @@ const styles = StyleSheet.create({
   },
   gpsStatusCard: {
     width: "100%",
-    minHeight: 84,
+    minHeight: 74,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
@@ -753,7 +769,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(82, 224, 79, 0.18)",
-    backgroundColor: "rgba(8, 18, 11, 0.78)",
+    backgroundColor: "rgba(5, 12, 7, 0.92)",
   },
   gpsStatusIcon: {
     width: 56,
@@ -770,12 +786,12 @@ const styles = StyleSheet.create({
   },
   gpsStatusTitle: {
     color: COLORS.text,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
   },
   gpsStatusSubtitle: {
     color: COLORS.textTertiary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     marginTop: 4,
   },

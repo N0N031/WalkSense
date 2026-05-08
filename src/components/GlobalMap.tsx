@@ -14,6 +14,8 @@ export interface SessionTrace {
 export interface GlobalMapProps {
   traces: SessionTrace[];
   userLocation: { latitude: number; longitude: number } | null;
+  controlsTopOffset?: number;
+  controlsBottomOffset?: number;
 }
 
 export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
@@ -43,7 +45,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f0ede5",
+    backgroundColor: COLORS.background,
     gap: 8,
   },
   icon: { fontSize: 48 },

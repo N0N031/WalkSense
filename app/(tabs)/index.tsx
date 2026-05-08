@@ -321,7 +321,7 @@ export default function HomeScreen() {
   if (showDetails && selectedSession) {
     return (
       <PremiumBackground>
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
         <ScrollView
           style={styles.detailsContainer}
           contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
@@ -602,7 +602,7 @@ export default function HomeScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.listContent,
-            { paddingBottom: Math.max(insets.bottom, 20) },
+            { paddingBottom: insets.bottom + 96 },
           ]}
           scrollEnabled={true}
         />
@@ -651,9 +651,9 @@ const styles = StyleSheet.create({
 
   hero: {
     marginHorizontal: 14,
-    marginTop: 12,
+    marginTop: 0,
     marginBottom: 10,
-    minHeight: 238,
+    minHeight: 224,
     overflow: "hidden",
     borderRadius: 28,
     borderWidth: 1,
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 14,
     paddingHorizontal: 18,
-    paddingTop: 18,
+    paddingTop: 16,
     paddingBottom: 12,
   },
 

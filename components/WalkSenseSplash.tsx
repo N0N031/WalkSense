@@ -8,7 +8,7 @@ import {
 } from "react-native";
 
 const SPLASH_BG = require("../assets/images/walksense-splash-bg.png");
-const LOGO_MARK = require("../assets/images/walksense-mark-512.png");
+const LOGO_MARK = require("../assets/images/walksense-mark-source-transparent.png");
 
 export default function WalkSenseSplash() {
   const rotate = useRef(new Animated.Value(0)).current;

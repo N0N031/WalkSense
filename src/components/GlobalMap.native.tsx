@@ -22,9 +22,16 @@ export interface SessionTrace {
 export interface GlobalMapProps {
   traces: SessionTrace[];
   userLocation: { latitude: number; longitude: number } | null;
+  controlsTopOffset?: number;
+  controlsBottomOffset?: number;
 }
 
-export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
+export default function GlobalMap({
+  traces,
+  userLocation,
+  controlsTopOffset = 10,
+  controlsBottomOffset = 16,
+}: GlobalMapProps) {
   const [satellite, setSatellite] = useState(true);
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
@@ -142,12 +149,19 @@ export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
       </RNMapView>
       <View pointerEvents="none" style={styles.mapTint} />
 
-      <TouchableOpacity style={styles.fitButton} onPress={fitAll}>
+      <TouchableOpacity
+        style={[styles.fitButton, { bottom: controlsBottomOffset }]}
+        onPress={fitAll}
+      >
         <Ionicons name="expand-outline" size={20} color={COLORS.text} />
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.locateButton, !userLocation && styles.buttonDisabled]}
+        style={[
+          styles.locateButton,
+          { bottom: controlsBottomOffset + 52 },
+          !userLocation && styles.buttonDisabled,
+        ]}
         onPress={centerOnUser}
       >
         <Ionicons
@@ -158,7 +172,11 @@ export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.layerToggle, satellite && styles.layerToggleActive]}
+        style={[
+          styles.layerToggle,
+          { top: controlsTopOffset },
+          satellite && styles.layerToggleActive,
+        ]}
         onPress={() => setSatellite((s) => !s)}
       >
         <Text style={[styles.layerText, satellite && styles.layerTextActive]}>
@@ -199,7 +217,6 @@ const styles = StyleSheet.create({
   },
   fitButton: {
     position: "absolute",
-    bottom: 16,
     left: 10,
     width: 40,
     height: 40,
@@ -217,7 +234,6 @@ const styles = StyleSheet.create({
   },
   locateButton: {
     position: "absolute",
-    bottom: 68,
     left: 10,
     width: 40,
     height: 40,

@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/walksense-icon.png",
     "splash": {
-      "image": "./assets/images/walksense-mark-512.png",
+      "image": "./assets/images/walksense-mark-source-transparent.png",
       "imageWidth": 170,
       "resizeMode": "contain",
       "backgroundColor": "#050505"
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/walksense-mark-512.png",
+        "foregroundImage": "./assets/images/walksense-mark-source-transparent.png",
         "backgroundColor": "#050505"
       },
       "edgeToEdgeEnabled": true,
@@ -50,7 +50,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/walksense-mark-512.png",
+          "image": "./assets/images/walksense-mark-source-transparent.png",
           "imageWidth": 170,
           "resizeMode": "contain",
           "backgroundColor": "#050505",

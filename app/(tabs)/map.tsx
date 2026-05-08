@@ -95,9 +95,14 @@ export default function MapScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <View style={styles.map}>
-        <GlobalMap traces={traces} userLocation={userLocation} />
+        <GlobalMap
+          traces={traces}
+          userLocation={userLocation}
+          controlsTopOffset={insets.top + 110}
+          controlsBottomOffset={insets.bottom + 96}
+        />
         {loading ? (
           <View style={styles.loading}>
             <ActivityIndicator color={COLORS.accent} />
@@ -105,8 +110,8 @@ export default function MapScreen() {
         ) : null}
       </View>
 
-      <View style={styles.header}>
-        <View>
+      <View style={[styles.header, { top: insets.top + 12 }]}>
+        <View style={styles.headerCopy}>
           <Text style={styles.title}>Carte</Text>
           <Text style={styles.subtitle}>
             {sessions.length} sessions · {totalEvents} marqueurs
@@ -125,9 +130,9 @@ const styles = StyleSheet.create({
   },
   header: {
     position: "absolute",
-    top: 12,
-    left: 16,
-    right: 16,
+    left: 24,
+    right: 24,
+    maxHeight: 112,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -153,6 +158,12 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 16,
     fontWeight: "800",
+    textAlign: "right",
+    minWidth: 72,
+  },
+  headerCopy: {
+    flex: 1,
+    paddingRight: 12,
   },
   map: {
     flex: 1,

@@ -27,7 +27,7 @@ export default function Toast({ message, onDone }: ToastProps) {
 const styles = StyleSheet.create({
   toast: {
     position: "absolute",
-    bottom: 18,
+    bottom: 96,
     left: 18,
     right: 18,
     zIndex: 20,
@@ -36,9 +36,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
     overflow: "hidden",
-    backgroundColor: COLORS.surfaceRaised,
+    backgroundColor: "rgba(5, 12, 7, 0.92)",
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(212, 175, 55, 0.30)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

@@ -18,7 +18,7 @@ export const BRANDING = {
   assets: {
     logoBoard: "assets/images/walksense-logo-board.png",
     logoPrimary: "assets/images/walksense-logo.png",
-    logoMark: "assets/images/walksense-mark.png",
+    logoMark: "assets/images/walksense-mark-source-transparent.png",
     appIcon: "assets/images/walksense-icon.png",
   },
 
