@@ -7,7 +7,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { migrateVaultToSqliteIfNeeded } from '@/src/data/migrationFromVault';
-import { authService } from '@/src/services/authService';
+import { authService, migrateAuthToSecureStoreIfNeeded } from '@/src/services/authService';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -21,6 +21,7 @@ export default function RootLayout() {
     let active = true;
     async function routeGate() {
       await migrateVaultToSqliteIfNeeded();
+      await migrateAuthToSecureStoreIfNeeded();
       if (!active) return;
 
       const onboardingDone = await authService.isOnboardingDone();
