@@ -1,132 +1,119 @@
 import * as Location from "expo-location";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { GpsPoint } from "@/src/services/sessionService";
+import { haversineKm } from "@/src/utils/distance";
 
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+const MAX_ACCURACY_M = 40;
+const MAX_JUMP_KM = 0.05;
 
 export interface GpsLocation {
   lat: number;
   lon: number;
-  accuracy?: number;
+  accuracy: number;
   altitude?: number;
   speed?: number;
+  timestamp: number;
 }
 
 export function useGps() {
   const [location, setLocation] = useState<GpsLocation | null>(null);
+  const [gpsTrace, setGpsTrace] = useState<GpsPoint[]>([]);
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [distance, setDistance] = useState(0);
 
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
-  const lastPosRef = useRef<GpsLocation | null>(null);
+  const lastAcceptedRef = useRef<GpsPoint | null>(null);
 
-  /**
-   * Demander les permissions
-   */
   const requestPermission = useCallback(async (): Promise<boolean> => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      return status === "granted";
+      const granted = status === "granted";
+      if (!granted) setError("Permission GPS refusee");
+      return granted;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur permission");
+      setError(err instanceof Error ? err.message : "Erreur permission GPS");
       return false;
     }
   }, []);
 
-  /**
-   * Démarrer le suivi GPS
-   */
-  const startTracking = useCallback(async () => {
-    try {
-      const hasPermission = await requestPermission();
-      if (!hasPermission) {
-        setError("Permission GPS refusée");
-        return;
-      }
+  const resetGps = useCallback(() => {
+    setDistance(0);
+    setGpsTrace([]);
+    lastAcceptedRef.current = null;
+  }, []);
 
-      setIsTracking(true);
-      setDistance(0);
-      lastPosRef.current = null;
-
-      subscriptionRef.current = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.BestForNavigation,
-          distanceInterval: 2,
-          timeInterval: 1000,
-        },
-        (loc) => {
-          const newLocation: GpsLocation = {
-            lat: loc.coords.latitude,
-            lon: loc.coords.longitude,
-            accuracy: loc.coords.accuracy ?? undefined,
-            altitude: loc.coords.altitude ?? undefined,
-            speed: loc.coords.speed ?? undefined,
-          };
-
-          setLocation(newLocation);
-
-          // Calculer la distance parcourue
-          if (lastPosRef.current) {
-            const d = haversineKm(
-              lastPosRef.current.lat,
-              lastPosRef.current.lon,
-              newLocation.lat,
-              newLocation.lon,
-            );
-            setDistance((prev) => prev + d);
-          }
-
-          lastPosRef.current = newLocation;
-        },
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur GPS";
-      setError(message);
-      setIsTracking(false);
-    }
-  }, [requestPermission]);
-
-  /**
-   * Arrêter le suivi GPS
-   */
   const stopTracking = useCallback(() => {
-    if (subscriptionRef.current) {
-      subscriptionRef.current.remove();
-      subscriptionRef.current = null;
-    }
+    subscriptionRef.current?.remove();
+    subscriptionRef.current = null;
     setIsTracking(false);
   }, []);
 
-  /**
-   * Réinitialiser la distance
-   */
-  const resetDistance = useCallback(() => {
-    setDistance(0);
-    lastPosRef.current = null;
-  }, []);
+  const startTracking = useCallback(
+    async (onPoint?: (point: GpsPoint) => void) => {
+      if (subscriptionRef.current) return;
 
-  useEffect(() => {
-    return () => {
-      stopTracking();
-    };
-  }, [stopTracking]);
+      const hasPermission = await requestPermission();
+      if (!hasPermission) return;
+
+      try {
+        setError(null);
+        setIsTracking(true);
+
+        subscriptionRef.current = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            distanceInterval: 2,
+            timeInterval: 1000,
+          },
+          (loc) => {
+            const accuracy = loc.coords.accuracy ?? Number.POSITIVE_INFINITY;
+            if (accuracy > MAX_ACCURACY_M) return;
+
+            const point: GpsPoint = {
+              lat: loc.coords.latitude,
+              lon: loc.coords.longitude,
+              accuracy,
+              altitude: loc.coords.altitude ?? undefined,
+              timestamp: loc.timestamp,
+            };
+
+            const last = lastAcceptedRef.current;
+            if (last) {
+              const jump = haversineKm(last.lat, last.lon, point.lat, point.lon);
+              if (jump > MAX_JUMP_KM) return;
+              setDistance((prev) => prev + jump);
+            }
+
+            lastAcceptedRef.current = point;
+            setLocation({
+              ...point,
+              speed: loc.coords.speed ?? undefined,
+            });
+            setGpsTrace((prev) => [...prev, point]);
+            onPoint?.(point);
+          },
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erreur GPS");
+        setIsTracking(false);
+      }
+    },
+    [requestPermission],
+  );
+
+  useEffect(() => stopTracking, [stopTracking]);
 
   return {
     location,
+    gpsTrace,
     isTracking,
     error,
     distance,
     startTracking,
     stopTracking,
-    resetDistance,
+    resetGps,
+    resetDistance: resetGps,
     requestPermission,
   };
 }

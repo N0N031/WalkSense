@@ -1,71 +1,59 @@
 /**
- * WalkSense Branding
- * Logo, marques, textes constants
+ * WalkSense branding constants.
  */
 
 export const BRANDING = {
   name: "WalkSense",
   tagline: "Tracking & Exploration de Terrain",
-  description: "Prospection assistée par GPS et détecteur de métaux",
+  description: "Prospection assistee par GPS et detecteur de metaux",
   version: "1.0.0",
 
-  // Couleurs du logo
   logo: {
-    primary: "#D4AF37", // Or
-    secondary: "#1A3A1A", // Vert profond
-    accent: "#3DB03D", // Vert clair
+    primary: "#D4AF37",
+    secondary: "#1A3A1A",
+    accent: "#3DBD3D",
+    background: "#0F0F0F",
   },
 
-  // URLs assets (à mettre à jour quand tu auras les images)
   assets: {
-    logoPrimary: require("../../assets/logo/walksense-color.png"),
-    logoMonoGold: require("../../assets/logo/walksense-mono-gold.png"),
-    logoMonoGreen: require("../../assets/logo/walksense-mono-green.png"),
-    logoMonoWhite: require("../../assets/logo/walksense-mono-white.png"),
-    favicon: require("../../assets/logo/favicon.ico"),
+    logoBoard: "assets/images/walksense-logo-board.png",
+    logoPrimary: "assets/images/walksense-logo.png",
+    logoMark: "assets/images/walksense-mark.png",
+    appIcon: "assets/images/walksense-icon.png",
   },
 
-  // Textes constants
   copy: {
     sessionNew: "Nouvelle session",
     sessionRunning: "Session en cours",
     sessionPaused: "Session en pause",
-    sessionStopped: "Session terminée",
+    sessionStopped: "Session terminee",
 
-    markerAuto: "Signal détecteur",
+    markerAuto: "Signal detecteur",
     markerManual: "Marqueur manuel",
     markerFind: "Trouvaille",
 
-    privacyPrivate: "Privé",
-    privacyBlurred: "Floutée",
+    privacyPrivate: "Prive",
+    privacyBlurred: "Floutee",
     privacyGroup: "Groupe",
-    privacyGhost: "Fantôme",
+    privacyGhost: "Fantome",
   },
 };
 
-/**
- * Contantes de l'app
- */
 export const APP_CONSTANTS = {
-  // GPS
-  gpsAccuracyThreshold: 20, // mètres
-  gpsUpdateInterval: 1000, // ms
-  gpsDistanceInterval: 10, // mètres
+  gpsAccuracyThreshold: 20,
+  gpsUpdateInterval: 1000,
+  gpsDistanceInterval: 10,
 
-  // BLE Détecteur
-  bleMaxDistance: 100, // mètres
-  bleSignalThreshold: 30, // % du signal min détectable
+  bleMaxDistance: 100,
+  bleSignalThreshold: 30,
 
-  // Cartes
   defaultMapStyle: "osm",
   mapZoomDefault: 14,
   mapZoomMin: 10,
   mapZoomMax: 20,
 
-  // Session
-  sessionMaxDuration: 86400 * 1000, // 24 heures en ms
-  sessionAutoSaveInterval: 30000, // 30 secondes
+  sessionMaxDuration: 86400 * 1000,
+  sessionAutoSaveInterval: 30000,
 
-  // Confidentialité
   defaultPrivacyMode: "private" as const,
 };

@@ -11,7 +11,7 @@ export function useTimer(initialSeconds = 0) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /**
-   * Démarrer le chrono
+   * Demarrer le chrono
    */
   const start = useCallback(() => {
     if (isRunning) return;
@@ -23,7 +23,7 @@ export function useTimer(initialSeconds = 0) {
   }, [isRunning]);
 
   /**
-   * Arrêter le chrono
+   * Arreter le chrono
    */
   const stop = useCallback(() => {
     if (timerRef.current) {
@@ -34,12 +34,16 @@ export function useTimer(initialSeconds = 0) {
   }, []);
 
   /**
-   * Réinitialiser le chrono
+   * Reinitialiser le chrono
    */
   const reset = useCallback(() => {
     stop();
     setElapsed(initialSeconds);
   }, [stop, initialSeconds]);
+
+  const syncElapsed = useCallback((seconds: number) => {
+    setElapsed(Math.max(0, Math.floor(seconds)));
+  }, []);
 
   /**
    * Pause et reprendre
@@ -53,7 +57,7 @@ export function useTimer(initialSeconds = 0) {
   }, [start]);
 
   /**
-   * Formater le temps écoulé
+   * Formater le temps ecoule
    */
   const format = useCallback((seconds: number = elapsed): string => {
     const h = Math.floor(seconds / 3600);
@@ -80,6 +84,7 @@ export function useTimer(initialSeconds = 0) {
     start,
     stop,
     reset,
+    syncElapsed,
     pause,
     resume,
     format,

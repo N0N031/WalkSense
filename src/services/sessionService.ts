@@ -4,7 +4,8 @@
  * Persistance AsyncStorage + génération UUID
  */
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { sha256 } from "@/src/utils/sha256";
+import { vaultService } from "@/src/services/vaultService";
 function generateUUID(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -49,6 +50,14 @@ export interface MarkedEvent {
   /** Alias signal pour explore.tsx */
   signal?: number;
   notes?: string;
+  /** Timestamp de confirmation de rebouchage (ms). */
+  refilledAt?: number;
+  /** Rappel de declaration DRAC a 24h pour les artefacts. */
+  dracReminderAt?: number;
+  /** Dernier affichage du rappel DRAC. */
+  dracReminderSeenAt?: number;
+  /** Indication d'echelle visible sur la photo terrain. */
+  photoScale?: "none" | "coin" | "rule" | "hand";
   /** Position (alias location) pour explore.tsx */
   position?: {
     latitude: number;
@@ -75,6 +84,10 @@ export interface Session {
     humidityAvg?: number;
     privateMode: boolean;
   };
+  /** SHA-256 du contenu canonique — calculé à la clôture, immutable. */
+  hash?: string;
+  /** Timestamp de verrouillage (ms). */
+  lockedAt?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -127,10 +140,7 @@ class SessionService {
         sessions.push(session);
       }
 
-      await AsyncStorage.setItem(
-        this.STORAGE_KEY,
-        JSON.stringify(sessions)
-      );
+      await vaultService.setJson(this.STORAGE_KEY, sessions);
     } catch (error) {
       console.error("SessionService.saveSession error:", error);
       throw error;
@@ -142,8 +152,7 @@ class SessionService {
    */
   async getSessions(): Promise<Session[]> {
     try {
-      const data = await AsyncStorage.getItem(this.STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
+      return await vaultService.getJson<Session[]>(this.STORAGE_KEY, []);
     } catch (error) {
       console.error("SessionService.getSessions error:", error);
       return [];
@@ -243,7 +252,8 @@ class SessionService {
   }
 
   /**
-   * Terminer et verrouiller la session
+   * Terminer et verrouiller la session avec hash SHA-256.
+   * Une fois clôturée, la session est immutable.
    */
   async endSession(
     sessionId: string,
@@ -257,21 +267,54 @@ class SessionService {
       const session = await this.getSessionById(sessionId);
       if (!session) return null;
 
-      const updated: Session = {
+      const lockedAt = Date.now();
+      const closed: Session = {
         ...session,
         status: "completed",
         endTime: data.endTime,
         distance: data.distance,
         duration: data.duration,
+        lockedAt,
       };
 
-      await this.saveSession(updated);
+      closed.hash = sha256(this.buildCanonical(closed));
+
+      await this.saveSession(closed);
       this.currentSessionId = null;
-      return updated;
+      return closed;
     } catch (error) {
       console.error("SessionService.endSession error:", error);
       return null;
     }
+  }
+
+  /**
+   * Construit la représentation canonique déterministe d'une session.
+   * C'est cette chaîne qui est hachée — toute modification ultérieure
+   * invalidera le hash.
+   */
+  private buildCanonical(session: Session): string {
+    return JSON.stringify({
+      v: "1.0",
+      id: session.id,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      duration: session.duration,
+      distance: Math.round(session.distance * 1000) / 1000,
+      lockedAt: session.lockedAt,
+      events: session.events.map((e) => ({
+        id: e.id,
+        ts: e.timestamp,
+        type: e.type,
+        lat: e.location.lat,
+        lon: e.location.lon,
+        classification: e.classification ?? null,
+        refilledAt: e.refilledAt ?? null,
+        photoScale: e.photoScale ?? null,
+        dracReminderAt: e.dracReminderAt ?? null,
+      })),
+      gpsPoints: session.gpsTrace.length,
+    });
   }
 
   /**
@@ -281,10 +324,7 @@ class SessionService {
     try {
       const sessions = await this.getSessions();
       const filtered = sessions.filter((s) => s.id !== id);
-      await AsyncStorage.setItem(
-        this.STORAGE_KEY,
-        JSON.stringify(filtered)
-      );
+      await vaultService.setJson(this.STORAGE_KEY, filtered);
       if (this.currentSessionId === id) {
         this.currentSessionId = null;
       }
@@ -318,21 +358,52 @@ class SessionService {
   }
 
   /**
+   * Confirmer le rebouchage d'un événement (obligation légale)
+   */
+  async refillEvent(sessionId: string, eventId: string): Promise<void> {
+    try {
+      const session = await this.getSessionById(sessionId);
+      if (!session) return;
+
+      session.events = session.events.map((e) =>
+        e.id === eventId ? { ...e, refilledAt: Date.now() } : e
+      );
+
+      await this.saveSession(session);
+    } catch (error) {
+      console.error("SessionService.refillEvent error:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Mettre à jour la classification d'un événement
    */
   async classifyEvent(
     sessionId: string,
     eventId: string,
     classification: string,
-    notes?: string
+    notes?: string,
+    photoScale?: MarkedEvent["photoScale"],
   ): Promise<void> {
     try {
       const session = await this.getSessionById(sessionId);
       if (!session) return;
 
-      session.events = session.events.map((e) =>
-        e.id === eventId ? { ...e, classification, notes } : e
-      );
+      session.events = session.events.map((e) => {
+        if (e.id !== eventId) return e;
+        const isArtifact = classification.toLowerCase() === "artefact";
+        return {
+          ...e,
+          classification,
+          notes,
+          photoScale,
+          dracReminderAt: isArtifact
+            ? e.dracReminderAt ?? Date.now() + 24 * 60 * 60 * 1000
+            : undefined,
+          dracReminderSeenAt: isArtifact ? e.dracReminderSeenAt : undefined,
+        };
+      });
 
       await this.saveSession(session);
     } catch (error) {
@@ -359,6 +430,32 @@ class SessionService {
       console.error("SessionService.addGpsPoint error:", error);
       throw error;
     }
+  }
+
+  async getDueDracReminders(now = Date.now()): Promise<
+    { session: Session; event: MarkedEvent }[]
+  > {
+    const sessions = await this.getSessions();
+    return sessions.flatMap((session) =>
+      session.events
+        .filter(
+          (event) =>
+            event.dracReminderAt &&
+            event.dracReminderAt <= now &&
+            !event.dracReminderSeenAt,
+        )
+        .map((event) => ({ session, event })),
+    );
+  }
+
+  async markDracReminderSeen(sessionId: string, eventId: string): Promise<void> {
+    const session = await this.getSessionById(sessionId);
+    if (!session) return;
+
+    session.events = session.events.map((event) =>
+      event.id === eventId ? { ...event, dracReminderSeenAt: Date.now() } : event,
+    );
+    await this.saveSession(session);
   }
 
   /**

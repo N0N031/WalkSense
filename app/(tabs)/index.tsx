@@ -5,10 +5,9 @@
  */
 
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Alert,
-  Dimensions,
   FlatList,
   Pressable,
   ScrollView,
@@ -18,12 +17,11 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import BrandLogo from "@/src/components/BrandLogo";
 import { COLORS } from "@/src/constants/colors";
 import { sessionService, Session } from "@/src/services/sessionService";
-
-const { width } = Dimensions.get("window");
-const isWeb = width > 600;
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -32,6 +30,7 @@ const isWeb = width > 600;
  */
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -84,7 +83,7 @@ export default function HomeScreen() {
               setSessions((prev) => prev.filter((s) => s.id !== sessionId));
               setShowDetails(false);
               Alert.alert("✅ Session supprimée");
-            } catch (error) {
+            } catch {
               Alert.alert("❌ Erreur", "Impossible de supprimer la session");
             }
           },
@@ -104,7 +103,7 @@ export default function HomeScreen() {
         "✅ Exporté",
         "JSON copié (intégration partage V2.0)\n\n" + json.substring(0, 100) + "..."
       );
-    } catch (error) {
+    } catch {
       Alert.alert("❌ Erreur", "Impossible d'exporter en JSON");
     }
   };
@@ -119,7 +118,7 @@ export default function HomeScreen() {
         "✅ Exporté",
         "GPX prêt pour cartes externes (V2.0)\n\n" + gpx.substring(0, 100) + "..."
       );
-    } catch (error) {
+    } catch {
       Alert.alert("❌ Erreur", "Impossible d'exporter en GPX");
     }
   };
@@ -158,6 +157,16 @@ export default function HomeScreen() {
     return `${(meters / 1000).toFixed(2)} km`;
   };
 
+  const getRefillStats = (session: Session) => {
+    const classified = session.events.filter((event) => event.classification);
+    const refilled = classified.filter((event) => event.refilledAt);
+    return {
+      total: classified.length,
+      done: refilled.length,
+      pending: classified.length - refilled.length,
+    };
+  };
+
   /**
    * Render session item
    */
@@ -172,14 +181,55 @@ export default function HomeScreen() {
         pressed && { opacity: 0.7 },
       ]}
     >
+      {(() => {
+        const refillStats = getRefillStats(item);
+        return refillStats.total > 0 ? (
+          <View
+            style={[
+              styles.refillSummary,
+              refillStats.pending > 0 && styles.refillSummaryPending,
+            ]}
+          >
+            <Ionicons
+              name={refillStats.pending > 0 ? "alert-circle" : "checkmark-circle"}
+              size={13}
+              color={refillStats.pending > 0 ? COLORS.warning : COLORS.success}
+            />
+            <Text
+              style={[
+                styles.refillSummaryText,
+                refillStats.pending > 0 && styles.refillSummaryTextPending,
+              ]}
+            >
+              {refillStats.done}/{refillStats.total} rebouches
+            </Text>
+          </View>
+        ) : null;
+      })()}
       <View style={styles.sessionCardHeader}>
         <View>
           <Text style={styles.sessionCardDate}>
             {formatDate(item.startTime)}
           </Text>
-          <Text style={styles.sessionCardSubtitle}>
-            {item.status === "completed" ? "✅ Terminée" : "⏱️ En cours"}
-          </Text>
+          <View style={styles.statusChip}>
+            <Ionicons
+              name={item.status === "completed" ? "checkmark-circle" : "radio-button-on"}
+              size={13}
+              color={item.status === "completed" ? COLORS.success : COLORS.warning}
+            />
+            <Text style={styles.sessionCardSubtitle}>
+              {item.status === "completed" ? "Terminée" : "En cours"}
+            </Text>
+            {item.hash ? (
+              <>
+                <Text style={styles.sessionCardSubtitle}> · </Text>
+                <Ionicons name="lock-closed" size={11} color={COLORS.accent} />
+                <Text style={[styles.sessionCardSubtitle, { color: COLORS.accent }]}>
+                  Verrouillée
+                </Text>
+              </>
+            ) : null}
+          </View>
         </View>
         <View style={styles.sessionCardBadge}>
           <Text style={styles.sessionCardBadgeText}>
@@ -230,8 +280,11 @@ export default function HomeScreen() {
    */
   if (showDetails && selectedSession) {
     return (
-      <View style={styles.container}>
-        <ScrollView style={styles.detailsContainer}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ScrollView
+          style={styles.detailsContainer}
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
+        >
           {/* Header */}
           <View style={styles.detailsHeader}>
             <TouchableOpacity
@@ -260,11 +313,16 @@ export default function HomeScreen() {
 
             <View style={styles.detailsRow}>
               <Text style={styles.detailsLabel}>État :</Text>
-              <Text style={styles.detailsValue}>
-                {selectedSession.status === "completed"
-                  ? "✅ Terminée"
-                  : "⏱️ En cours"}
-              </Text>
+              <View style={styles.statusChip}>
+                <Ionicons
+                  name={selectedSession.status === "completed" ? "checkmark-circle" : "radio-button-on"}
+                  size={14}
+                  color={selectedSession.status === "completed" ? COLORS.success : COLORS.warning}
+                />
+                <Text style={styles.detailsValue}>
+                  {selectedSession.status === "completed" ? "Terminée" : "En cours"}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.detailsRow}>
@@ -288,6 +346,22 @@ export default function HomeScreen() {
               </Text>
             </View>
 
+            {getRefillStats(selectedSession).total > 0 ? (
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailsLabel}>Rebouchage :</Text>
+                <Text
+                  style={[
+                    styles.detailsValue,
+                    getRefillStats(selectedSession).pending > 0 &&
+                      styles.detailsWarning,
+                  ]}
+                >
+                  {getRefillStats(selectedSession).done}/
+                  {getRefillStats(selectedSession).total} confirmes
+                </Text>
+              </View>
+            ) : null}
+
             <View style={styles.detailsRow}>
               <Text style={styles.detailsLabel}>Points GPS :</Text>
               <Text style={styles.detailsValue}>
@@ -295,6 +369,27 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Hash SHA-256 */}
+          {selectedSession.hash ? (
+            <View style={styles.detailsSection}>
+              <View style={styles.hashHeader}>
+                <Ionicons name="lock-closed" size={15} color={COLORS.accent} />
+                <Text style={styles.detailsSectionTitle}>Session verrouillée</Text>
+              </View>
+              <Text style={styles.hashSubtitle}>
+                SHA-256 calculé à la clôture — toute modification invalide cette empreinte.
+              </Text>
+              <View style={styles.hashBox}>
+                <Text style={styles.hashText}>{selectedSession.hash}</Text>
+              </View>
+              {selectedSession.lockedAt ? (
+                <Text style={styles.hashDate}>
+                  Verrouillée le {formatDate(selectedSession.lockedAt)}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
 
           {/* Événements */}
           {selectedSession.events.length > 0 && (
@@ -336,16 +431,38 @@ export default function HomeScreen() {
                     </Text>
                   )}
 
+                  {event.classification ? (
+                    <View style={styles.refillStatusRow}>
+                      <Ionicons
+                        name={event.refilledAt ? "checkmark-circle" : "alert-circle"}
+                        size={13}
+                        color={event.refilledAt ? COLORS.success : COLORS.warning}
+                      />
+                      <Text
+                        style={[
+                          styles.refillStatusText,
+                          !event.refilledAt && styles.refillStatusPending,
+                        ]}
+                      >
+                        {event.refilledAt
+                          ? `Rebouche le ${formatDate(event.refilledAt)}`
+                          : "A reboucher"}
+                      </Text>
+                    </View>
+                  ) : null}
+
                   {event.notes && (
                     <Text style={styles.eventItemNotes}>
                       Notes : {event.notes}
                     </Text>
                   )}
 
-                  <Text style={styles.eventItemCoords}>
-                    📍 {event.location.lat.toFixed(5)} ,{" "}
-                    {event.location.lon.toFixed(5)}
-                  </Text>
+                  <View style={styles.coordsRow}>
+                    <Ionicons name="location-outline" size={11} color={COLORS.textTertiary} />
+                    <Text style={styles.eventItemCoords}>
+                      {event.location.lat.toFixed(5)}, {event.location.lon.toFixed(5)}
+                    </Text>
+                  </View>
                 </View>
               ))}
             </View>
@@ -394,13 +511,16 @@ export default function HomeScreen() {
    * Render liste sessions
    */
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>WalkSense</Text>
-        <Text style={styles.headerSubtitle}>
-          {sessions.length} session{sessions.length !== 1 ? "s" : ""}
-        </Text>
+        <BrandLogo compact />
+        <View style={styles.headerCopy}>
+          <Text style={styles.headerTitle}>WalkSense</Text>
+          <Text style={styles.headerSubtitle}>
+            {sessions.length} session{sessions.length !== 1 ? "s" : ""}
+          </Text>
+        </View>
       </View>
 
       {/* Sessions list */}
@@ -410,15 +530,10 @@ export default function HomeScreen() {
         </View>
       ) : sessions.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons
-            name="map-outline"
-            size={64}
-            color={COLORS.border}
-            style={{ marginBottom: 16 }}
-          />
+          <BrandLogo />
           <Text style={styles.emptyTitle}>Aucune session</Text>
           <Text style={styles.emptySubtitle}>
-            Allez à l'onglet "Explore" pour commencer
+            Allez a l&apos;onglet &quot;Explore&quot; pour commencer
           </Text>
         </View>
       ) : (
@@ -426,7 +541,10 @@ export default function HomeScreen() {
           data={sessions}
           renderItem={renderSessionItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: Math.max(insets.bottom, 20) },
+          ]}
           scrollEnabled={true}
         />
       )}
@@ -451,19 +569,26 @@ const styles = StyleSheet.create({
   // ─────────────────────────────────────────────────────────────────
 
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingTop: 12,
+    paddingBottom: 14,
     backgroundColor: COLORS.background,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
 
+  headerCopy: {
+    flex: 1,
+  },
+
   headerTitle: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: COLORS.primary,
-    marginBottom: 4,
+    fontSize: 26,
+    fontWeight: "800",
+    color: COLORS.accent,
+    marginBottom: 2,
   },
 
   headerSubtitle: {
@@ -483,10 +608,12 @@ const styles = StyleSheet.create({
 
   sessionCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.accent,
     marginBottom: 8,
   },
 
@@ -503,29 +630,64 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
 
-  sessionCardSubtitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
+  statusChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     marginTop: 4,
   },
 
+  sessionCardSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+
   sessionCardBadge: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "transparent",
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
   },
 
   sessionCardBadgeText: {
-    color: "white",
+    color: COLORS.accent,
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
   sessionCardStats: {
     flexDirection: "row",
     gap: 12,
     justifyContent: "space-between",
+  },
+
+  refillSummary: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.success,
+    marginBottom: 10,
+  },
+
+  refillSummaryPending: {
+    borderColor: COLORS.warning,
+  },
+
+  refillSummaryText: {
+    color: COLORS.success,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+
+  refillSummaryTextPending: {
+    color: COLORS.warning,
   },
 
   statItem: {
@@ -537,7 +699,8 @@ const styles = StyleSheet.create({
 
   statLabel: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    color: COLORS.text,
+    fontWeight: "600",
   },
 
   // ─────────────────────────────────────────────────────────────────
@@ -642,6 +805,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  detailsWarning: {
+    color: COLORS.warning,
+  },
+
   // ─────────────────────────────────────────────────────────────────
   // ÉVÉNEMENTS
   // ─────────────────────────────────────────────────────────────────
@@ -687,6 +854,23 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
+  refillStatusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginBottom: 4,
+  },
+
+  refillStatusText: {
+    color: COLORS.success,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  refillStatusPending: {
+    color: COLORS.warning,
+  },
+
   eventItemNotes: {
     fontSize: 12,
     color: COLORS.text,
@@ -694,15 +878,57 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 
+  coordsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+
   eventItemCoords: {
     fontSize: 10,
-    color: COLORS.textSecondary,
+    color: COLORS.textTertiary,
     fontFamily: "monospace",
   },
 
   // ─────────────────────────────────────────────────────────────────
   // ACTIONS
   // ─────────────────────────────────────────────────────────────────
+
+  hashHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+
+  hashSubtitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+
+  hashBox: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  hashText: {
+    fontFamily: "monospace",
+    fontSize: 11,
+    color: COLORS.accent,
+    letterSpacing: 0.5,
+    flexWrap: "wrap",
+  },
+
+  hashDate: {
+    fontSize: 11,
+    color: COLORS.textTertiary,
+    marginTop: 8,
+  },
 
   actionButton: {
     flexDirection: "row",
