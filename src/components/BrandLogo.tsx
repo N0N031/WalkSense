@@ -10,7 +10,7 @@ export default function BrandLogo({ compact = false, style }: BrandLogoProps) {
   return (
     <View style={compact ? styles.compactFrame : styles.frame}>
       <Image
-        source={require("@/assets/images/walksense-logo.png")}
+        source={require("@/assets/images/walksense-mark-512.png")}
         resizeMode="contain"
         style={[compact ? styles.compactLogo : styles.logo, style]}
       />
