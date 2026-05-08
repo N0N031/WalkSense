@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/src/constants/colors";
+import { formatDistanceMeters } from "@/src/utils/format";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -44,7 +45,7 @@ export default function SessionHud({
         <Metric
           icon="navigate"
           label="DIST"
-          value={`${distance.toFixed(2)} km`}
+          value={formatDistanceMeters(distance)}
           color={COLORS.primary}
         />
         <Metric

@@ -1,10 +1,10 @@
 import * as Location from "expo-location";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GpsPoint } from "@/src/services/sessionService";
-import { haversineKm } from "@/src/utils/distance";
+import { haversineMeters } from "@/src/utils/distance";
 
 const MAX_ACCURACY_M = 40;
-const MAX_JUMP_KM = 0.05;
+const MAX_JUMP_M = 50;
 
 export interface GpsLocation {
   lat: number;
@@ -80,8 +80,8 @@ export function useGps() {
 
             const last = lastAcceptedRef.current;
             if (last) {
-              const jump = haversineKm(last.lat, last.lon, point.lat, point.lon);
-              if (jump > MAX_JUMP_KM) return;
+              const jump = haversineMeters(last.lat, last.lon, point.lat, point.lon);
+              if (jump > MAX_JUMP_M) return;
               setDistance((prev) => prev + jump);
             }
 

@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandLogo from "@/src/components/BrandLogo";
 import { COLORS } from "@/src/constants/colors";
 import { sessionService, Session } from "@/src/services/sessionService";
+import { formatDistanceMeters } from "@/src/utils/format";
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -147,14 +148,6 @@ export default function HomeScreen() {
     return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  /**
-   * Formater la distance
-   */
-  const formatDistance = (km: number): string => {
-    if (km < 1) return `${Math.round(km * 1000)} m`;
-    return `${km.toFixed(2)} km`;
-  };
-
   const getRefillStats = (session: Session) => {
     const classified = session.events.filter((event) => event.classification);
     const refilled = classified.filter((event) => event.refilledAt);
@@ -255,7 +248,7 @@ export default function HomeScreen() {
             color={COLORS.primary}
           />
           <Text style={styles.statLabel}>
-            {formatDistance(item.distance)}
+            {formatDistanceMeters(item.distance)}
           </Text>
         </View>
 
@@ -333,7 +326,7 @@ export default function HomeScreen() {
             <View style={styles.detailsRow}>
               <Text style={styles.detailsLabel}>Distance :</Text>
               <Text style={styles.detailsValue}>
-                {formatDistance(selectedSession.distance)}
+                {formatDistanceMeters(selectedSession.distance)}
               </Text>
             </View>
 

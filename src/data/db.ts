@@ -1,6 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SQLite from "expo-sqlite";
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+const DISTANCE_MIGRATION_FLAG = "walksense_distance_km_to_meters_v1";
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
@@ -132,4 +134,13 @@ async function migrateSnakeCaseSchemaIfNeeded(
   `);
 
   return true;
+}
+
+export async function migrateDistancesKmToMetersIfNeeded(): Promise<void> {
+  const done = await AsyncStorage.getItem(DISTANCE_MIGRATION_FLAG);
+  if (done === "1") return;
+
+  const db = await getDb();
+  await db.runAsync("UPDATE sessions SET distance = distance * 1000");
+  await AsyncStorage.setItem(DISTANCE_MIGRATION_FLAG, "1");
 }

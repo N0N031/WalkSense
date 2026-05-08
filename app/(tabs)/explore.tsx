@@ -25,6 +25,7 @@ import {
   MarkedEvent,
   sessionService,
 } from "@/src/services/sessionService";
+import { formatDistanceMeters } from "@/src/utils/format";
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -214,9 +215,9 @@ export default function ExploreScreen() {
 
     Alert.alert(
       "Terminer la session ?",
-      `Duree: ${formatDuration(elapsed)} - Distance: ${totalDistance.toFixed(
-        2,
-      )} km`,
+      `Duree: ${formatDuration(elapsed)} - Distance: ${formatDistanceMeters(
+        totalDistance,
+      )}`,
       [
         { text: "Annuler", style: "cancel" },
         {

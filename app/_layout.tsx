@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
+import { migrateDistancesKmToMetersIfNeeded } from '@/src/data/db';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { migrateVaultToSqliteIfNeeded } from '@/src/data/migrationFromVault';
 import { authService, migrateAuthToSecureStoreIfNeeded } from '@/src/services/authService';
@@ -21,6 +22,7 @@ export default function RootLayout() {
     let active = true;
     async function routeGate() {
       await migrateVaultToSqliteIfNeeded();
+      await migrateDistancesKmToMetersIfNeeded();
       await migrateAuthToSecureStoreIfNeeded();
       if (!active) return;
 
