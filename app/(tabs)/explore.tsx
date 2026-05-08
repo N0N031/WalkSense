@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Alert,
   StyleSheet,
@@ -16,7 +16,6 @@ import SessionHud from "@/src/components/SessionHud";
 import SessionMap from "@/src/components/SessionMap";
 import Toast from "@/src/components/Toast";
 import { COLORS } from "@/src/constants/colors";
-import { useBle } from "@/src/hooks/useBle";
 import { useGps } from "@/src/hooks/useGps";
 import { useSession } from "@/src/hooks/useSession";
 import { useTimer } from "@/src/hooks/useTimer";
@@ -72,20 +71,12 @@ export default function ExploreScreen() {
     resume: resumeTimer,
     syncElapsed,
   } = useTimer();
-  const ble = useBle();
-
   const [toast, setToast] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<MarkedEvent | null>(null);
   const [classifyVisible, setClassifyVisible] = useState(false);
   const [initialDistance, setInitialDistance] = useState(0);
   const [redFilter, setRedFilter] = useState(false);
 
-  const signal = useMemo(() => {
-    if (!ble.metrics) return 0;
-    return Math.max(0, Math.min(100, ((ble.metrics.rssi + 90) / 90) * 100));
-  }, [ble.metrics]);
-
-  const battery = ble.metrics?.battery ?? 100;
   const totalDistance = initialDistance + liveDistance;
   const gpsTrace = session?.gpsTrace ?? [];
   const userLocation = location
@@ -252,13 +243,12 @@ export default function ExploreScreen() {
         accuracy: location?.accuracy ?? 0,
         timestamp: Date.now(),
       },
-      signal,
       notes: "Marqueur manuel",
     };
 
     await addEvent(event);
     setToast("Marqueur ajoute");
-  }, [addEvent, location, session, signal]);
+  }, [addEvent, location, session]);
 
   const handleClassify = useCallback(
     async (
@@ -301,7 +291,7 @@ export default function ExploreScreen() {
           <BrandLogo />
           <Text style={styles.title}>Nouvelle prospection</Text>
           <Text style={styles.subtitle}>
-            Lancez une session pour enregistrer la trace GPS et les signaux.
+            Lancez une session pour enregistrer la trace GPS et les marqueurs.
           </Text>
           <TouchableOpacity style={styles.startButton} onPress={handleStart}>
             <Ionicons name="play" size={20} color="white" />
@@ -319,8 +309,6 @@ export default function ExploreScreen() {
         time={formatDuration(elapsed)}
         distance={totalDistance}
         gpsAccuracy={location?.accuracy}
-        signal={signal}
-        battery={battery}
         isRunning={isRunning}
       />
 

@@ -16,7 +16,7 @@ export interface GlobalMapProps {
   userLocation: { latitude: number; longitude: number } | null;
 }
 
-export default function GlobalMap({ traces }: GlobalMapProps) {
+export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
   const totalPoints = traces.reduce((sum, t) => sum + t.points.length, 0);
   const totalEvents = traces.reduce((sum, t) => sum + t.events.length, 0);
 
@@ -27,6 +27,12 @@ export default function GlobalMap({ traces }: GlobalMapProps) {
       <Text style={styles.sub}>
         {totalPoints} points GPS · {totalEvents} marqueurs
       </Text>
+      {userLocation ? (
+        <Text style={styles.location}>
+          Position: {userLocation.latitude.toFixed(5)},{" "}
+          {userLocation.longitude.toFixed(5)}
+        </Text>
+      ) : null}
       <Text style={styles.note}>Carte non disponible sur cette plateforme</Text>
     </View>
   );
@@ -43,5 +49,6 @@ const styles = StyleSheet.create({
   icon: { fontSize: 48 },
   label: { fontSize: 16, fontWeight: "600", color: COLORS.text },
   sub: { fontSize: 13, color: COLORS.textSecondary },
+  location: { fontSize: 12, color: COLORS.info },
   note: { fontSize: 11, color: COLORS.textTertiary, marginTop: 4 },
 });

@@ -11,7 +11,6 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, index, onPress }: EventCardProps) {
-  const signal = event.signal ?? event.signalStrength;
   const needsRefill = Boolean(event.classification && !event.refilledAt);
   const dracDue =
     event.dracReminderAt && !event.dracReminderSeenAt
@@ -39,8 +38,7 @@ export default function EventCard({ event, index, onPress }: EventCardProps) {
               : "Marqueur manuel"}
         </Text>
         <Text style={styles.meta}>
-          {new Date(event.timestamp).toLocaleTimeString()} -{" "}
-          {signal !== undefined ? `${Math.round(signal)}%` : "signal --"}
+          {new Date(event.timestamp).toLocaleTimeString()}
         </Text>
         {event.classification ? (
           <Text style={styles.classification}>{event.classification}</Text>

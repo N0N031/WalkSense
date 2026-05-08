@@ -20,7 +20,7 @@ export default function SessionBottomSheet({
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Signaux</Text>
+          <Text style={styles.title}>Marqueurs</Text>
           <Text style={styles.subtitle}>{events.length} evenement(s)</Text>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={onAddMarker}>
@@ -32,7 +32,7 @@ export default function SessionBottomSheet({
         {events.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="radio-outline" size={28} color={COLORS.textTertiary} />
-            <Text style={styles.emptyText}>Aucun signal marque</Text>
+            <Text style={styles.emptyText}>Aucun marqueur</Text>
           </View>
         ) : (
           events.map((event, index) => (

@@ -1,3 +1,4 @@
+import * as Location from "expo-location";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -16,10 +17,31 @@ const TRACE_COLORS = [
   COLORS.markerFind,
 ];
 
+async function loadUserLocation(): Promise<{
+  latitude: number;
+  longitude: number;
+} | null> {
+  const permission = await Location.requestForegroundPermissionsAsync();
+  if (permission.status !== "granted") return null;
+
+  const position = await Location.getCurrentPositionAsync({
+    accuracy: Location.Accuracy.Balanced,
+  });
+
+  return {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+  };
+}
+
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -28,8 +50,14 @@ export default function MapScreen() {
       async function loadSessions() {
         setLoading(true);
         try {
-          const data = await sessionService.getSessions();
-          if (active) setSessions(data);
+          const [data, position] = await Promise.all([
+            sessionService.getSessions(),
+            loadUserLocation(),
+          ]);
+          if (active) {
+            setSessions(data);
+            setUserLocation(position);
+          }
         } catch (error) {
           console.error("MapScreen.loadSessions error:", error);
           if (active) setSessions([]);
@@ -79,7 +107,7 @@ export default function MapScreen() {
       </View>
 
       <View style={styles.map}>
-        <GlobalMap traces={traces} userLocation={null} />
+        <GlobalMap traces={traces} userLocation={userLocation} />
         {loading ? (
           <View style={styles.loading}>
             <ActivityIndicator color={COLORS.accent} />

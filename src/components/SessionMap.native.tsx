@@ -47,6 +47,7 @@ export default function SessionMap({
         style={{ flex: 1 }}
         mapType="none"
         initialRegion={region}
+        maxZoomLevel={19}
         showsUserLocation={false}
         showsMyLocationButton={false}
         moveOnMarkerPress={false}

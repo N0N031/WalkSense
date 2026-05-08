@@ -8,8 +8,6 @@ interface SessionHudProps {
   time: string;
   distance: number;
   gpsAccuracy?: number | null;
-  signal: number;
-  battery: number;
   isRunning: boolean;
 }
 
@@ -17,8 +15,6 @@ export default function SessionHud({
   time,
   distance,
   gpsAccuracy,
-  signal,
-  battery,
   isRunning,
 }: SessionHudProps) {
   return (
@@ -53,18 +49,6 @@ export default function SessionHud({
           label="GPS"
           value={gpsAccuracy ? `±${gpsAccuracy.toFixed(0)}m` : "--"}
           color={COLORS.info}
-        />
-        <Metric
-          icon="radio"
-          label="SIG"
-          value={`${Math.round(signal)}%`}
-          color={COLORS.accent}
-        />
-        <Metric
-          icon="battery-half"
-          label="BAT"
-          value={`${Math.round(battery)}%`}
-          color={battery > 20 ? COLORS.success : COLORS.error}
         />
       </View>
     </View>
