@@ -14,6 +14,7 @@ export function useTimer(initialSeconds = 0) {
    * Demarrer le chrono
    */
   const start = useCallback(() => {
+    if (timerRef.current) return;
     if (isRunning) return;
 
     setIsRunning(true);

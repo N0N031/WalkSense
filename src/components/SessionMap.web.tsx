@@ -8,6 +8,7 @@ export interface SessionMapProps {
   userLocation: { latitude: number; longitude: number } | null;
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
+  historicalTraces?: GpsPoint[][];
 }
 
 export default function SessionMap({ events }: SessionMapProps) {

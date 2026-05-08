@@ -44,11 +44,16 @@ export default function ClassifySheet({
   const [photoScale, setPhotoScale] = useState<NonNullable<PhotoScale>>("none");
   const [step, setStep] = useState<"classify" | "rebouchage">("classify");
   const [pendingClass, setPendingClass] = useState("");
+  const stepTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requiresRefill =
     event?.type === "find" || event?.type === "manual";
 
   function handleClose() {
+    if (stepTimerRef.current) {
+      clearTimeout(stepTimerRef.current);
+      stepTimerRef.current = null;
+    }
     setStep("classify");
     setNotes("");
     setPendingClass("");
@@ -61,7 +66,8 @@ export default function ClassifySheet({
     if (requiresRefill) {
       setPendingClass(option);
       onClassify(option, notes.trim() || undefined, scale);
-      setTimeout(() => {
+      stepTimerRef.current = setTimeout(() => {
+        stepTimerRef.current = null;
         setStep("rebouchage");
       }, 150);
     } else {

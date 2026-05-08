@@ -15,6 +15,7 @@ export interface SessionMapProps {
   userLocation: { latitude: number; longitude: number } | null;
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
+  historicalTraces?: GpsPoint[][];
 }
 
 export default function SessionMap({
@@ -22,6 +23,7 @@ export default function SessionMap({
   userLocation,
   events,
   onEventPress,
+  historicalTraces = [],
 }: SessionMapProps) {
   const [satellite, setSatellite] = useState(false);
   const mapRef = useRef<RNMapView>(null);
@@ -54,6 +56,18 @@ export default function SessionMap({
           maximumZ={19}
           tileSize={256}
         />
+
+        {historicalTraces.map((trace, idx) => {
+          const coords = trace.map((p) => ({ latitude: p.lat, longitude: p.lon }));
+          return coords.length > 1 ? (
+            <Polyline
+              key={`hist-${idx}`}
+              coordinates={coords}
+              strokeColor="rgba(212, 175, 55, 0.25)"
+              strokeWidth={2}
+            />
+          ) : null;
+        })}
 
         {polyline.length > 1 && (
           <Polyline
