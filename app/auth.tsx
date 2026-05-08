@@ -88,7 +88,7 @@ export default function AuthScreen() {
         <Text style={styles.subtitle}>
           {hasAuth
             ? "Entrez le code local pour ouvrir RockSense."
-            : "Ce code protège les sessions stockées sur l'appareil."}
+            : "Ce code protege les sessions stockees sur votre appareil."}
         </Text>
 
         <TextInput
@@ -116,7 +116,7 @@ export default function AuthScreen() {
         {hasAuth && biometricAvailable ? (
           <TouchableOpacity style={styles.bioButton} onPress={tryBiometric}>
             <Ionicons name="finger-print" size={22} color={COLORS.accent} />
-            <Text style={styles.bioText}>Utiliser l'empreinte</Text>
+            <Text style={styles.bioText}>Utiliser empreinte</Text>
           </TouchableOpacity>
         ) : null}
       </View>

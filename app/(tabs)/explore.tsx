@@ -22,7 +22,7 @@ import {
 } from "@/src/services/sessionService";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -63,16 +63,13 @@ export default function ExploreScreen() {
     distance: liveDistance,
     startTracking,
     stopTracking,
-    resetGps,
   } = useGps();
   const {
     elapsed,
     start: startTimer,
     stop: stopTimer,
-    reset: resetTimer,
     pause: pauseTimer,
     resume: resumeTimer,
-    syncElapsed,
   } = useTimer();
   const [toast, setToast] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<MarkedEvent | null>(null);
@@ -82,28 +79,30 @@ export default function ExploreScreen() {
   const [coverageCells, setCoverageCells] = useState<CoverageCellEntity[]>([]);
   const [showGrid, setShowGrid] = useState(true);
 
+  const sessionId = session?.id;
+  const sessionCoverageCells = session?.coverageCells;
   const totalDistance = initialDistance + liveDistance;
-  const gpsTrace = session?.gpsTrace ?? [];
+  const gpsTrace = useMemo(() => session?.gpsTrace ?? [], [session?.gpsTrace]);
   const userLocation = location
     ? { latitude: location.lat, longitude: location.lon }
     : null;
 
   // ✅ SINGLE EFFECT: Load grid data (persisted or preview)
   useEffect(() => {
-    if (!session || !isRunning) return;
+    if (!sessionId || !isRunning) return;
 
     let active = true;
 
     async function loadGrid() {
-      if (!session?.id) {
+      if (!sessionId) {
         setCoverageCells([]);
         return;
       }
 
       // PHASE 1 : Display real-time buffer first
-      if (session.coverageCells && session.coverageCells.length > 0) {
+      if (sessionCoverageCells && sessionCoverageCells.length > 0) {
         if (active) {
-          setCoverageCells(session.coverageCells.slice(0, GRID_DISPLAY_LIMIT));
+          setCoverageCells(sessionCoverageCells.slice(0, GRID_DISPLAY_LIMIT));
         }
         return;
       }
@@ -111,7 +110,7 @@ export default function ExploreScreen() {
       try {
 
         const persisted = await sessionRepository.getCoverageCellsBySession(
-          session.id,
+          sessionId,
           GRID_DISPLAY_LIMIT,
         );
 
@@ -126,7 +125,7 @@ export default function ExploreScreen() {
         const previewPoints = gpsTrace.slice(-GRID_PREVIEW_POINT_LIMIT);
         if (previewPoints.length > 0) {
           const preview = await generateCoverageFromTrajectory({
-            sessionId: session.id,
+            sessionId,
             gpsPoints: previewPoints,
           });
           if (active) {
@@ -144,15 +143,13 @@ export default function ExploreScreen() {
     return () => {
       active = false;
     };
-  }, [session?.id, session?.coverageCells, gpsTrace, isRunning]);
+  }, [sessionId, sessionCoverageCells, gpsTrace, isRunning]);
 
   // ✅ EFFECT: Update coverage cells when GPS point arrives
   useEffect(() => {
-    if (!session?.id || !isRunning || !location) return;
+    if (!sessionId || !isRunning || !location) return;
 
     const gpsPoint: GpsPoint = {
-      id: makeId(),
-      sessionId: session.id,
       lat: location.lat,
       lon: location.lon,
       accuracy: location.accuracy || 0,
@@ -160,7 +157,7 @@ export default function ExploreScreen() {
     };
 
     setSession((prev) => {
-      if (!prev || prev.id !== session.id) return prev;
+      if (!prev || prev.id !== sessionId) return prev;
 
       // Avoid duplicates
       const alreadyExists = prev.gpsTrace.some(
@@ -182,7 +179,7 @@ export default function ExploreScreen() {
         // Check throttle: only update if enough time has passed
         if (now - lastUpdate > updated.gridUpdateInterval) {
           // Calculate cells from fresh point only
-          const affectedCells = generateCellsFromPoint(session.id, gpsPoint, 1);
+          const affectedCells = generateCellsFromPoint(sessionId, gpsPoint, 1);
 
           // Merge + deduplicate in memory
           const merged = deduplicateCells([
@@ -203,11 +200,11 @@ export default function ExploreScreen() {
     });
 
     // Persist to DB asynchronously (non-blocking)
-    sessionService.addGpsPoint(session.id, gpsPoint).catch((err) => {
+    sessionService.addGpsPoint(sessionId, gpsPoint).catch((err) => {
       console.error("GPS persistence error:", err);
       setToast("Erreur sauvegarde GPS");
     });
-  }, [location, session?.id, isRunning]);
+  }, [location, sessionId, setSession, isRunning]);
 
   // ✅ Handle start session
   const handleStart = useCallback(async () => {
@@ -340,7 +337,7 @@ export default function ExploreScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.empty}>
-          <BrandLogo size="large" />
+          <BrandLogo />
           <Text style={styles.title}>RockSense</Text>
           <Text style={styles.subtitle}>
             Tracez vos prospections terrain avec précision. Enregistrez chaque
@@ -368,11 +365,10 @@ export default function ExploreScreen() {
       />
 
       <SessionHud
-        elapsed={elapsed}
+        time={formatDuration(elapsed)}
         distance={totalDistance}
-        accuracy={location?.accuracy}
-        signalLevel={3}
-        batteryLevel={95}
+        gpsAccuracy={location?.accuracy}
+        isRunning={isRunning}
       />
 
       <TouchableOpacity

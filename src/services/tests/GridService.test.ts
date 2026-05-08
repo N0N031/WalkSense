@@ -1,3 +1,4 @@
+import type { CoverageCellEntity } from "@/src/data/gridEntities";
 import { getCellCenter } from "@/src/services/GpsQualityService";
 import {
     deduplicateCells,
@@ -45,7 +46,7 @@ export async function runGridServiceTests(): Promise<void> {
   }
 
   // PHASE 4 : Test deduplicateCells
-  const cellsToDedup = [
+  const cellsToDedup: CoverageCellEntity[] = [
     {
       cellId: "A1",
       sessionId: "test",

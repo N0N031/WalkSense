@@ -428,6 +428,9 @@ class SessionRepository {
       metadata: parseJson(row.metadata, { privateMode: false }),
       hash: row.hash ?? undefined,
       lockedAt: row.lockedAt ?? undefined,
+      coverageCells: [],
+      lastGridUpdateMs: 0,
+      gridUpdateInterval: 500,
     };
   }
 
