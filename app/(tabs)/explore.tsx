@@ -90,7 +90,7 @@ export default function ExploreScreen() {
 
   // ✅ SINGLE EFFECT: Load grid data (persisted or preview)
   useEffect(() => {
-    if (!session || session.status !== "running") return;
+    if (!session || !isRunning) return;
 
     let active = true;
 
@@ -144,11 +144,11 @@ export default function ExploreScreen() {
     return () => {
       active = false;
     };
-  }, [session?.id, session?.coverageCells, gpsTrace]);
+  }, [session?.id, session?.coverageCells, gpsTrace, isRunning]);
 
   // ✅ EFFECT: Update coverage cells when GPS point arrives
   useEffect(() => {
-    if (!session?.id || session.status !== "running" || !location) return;
+    if (!session?.id || !isRunning || !location) return;
 
     const gpsPoint: GpsPoint = {
       id: makeId(),
@@ -207,7 +207,7 @@ export default function ExploreScreen() {
       console.error("GPS persistence error:", err);
       setToast("Erreur sauvegarde GPS");
     });
-  }, [location, session?.id, session?.status]);
+  }, [location, session?.id, isRunning]);
 
   // ✅ Handle start session
   const handleStart = useCallback(async () => {
@@ -248,7 +248,7 @@ export default function ExploreScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            await end();
+            await end(totalDistance, elapsed);
             stopTracking();
             stopTimer();
             setToast("Session terminée");
@@ -259,7 +259,7 @@ export default function ExploreScreen() {
         },
       },
     ]);
-  }, [end, stopTracking, stopTimer]);
+  }, [end, stopTracking, stopTimer, totalDistance, elapsed]);
 
   // ✅ Handle add marker
   const handleAddMarker = useCallback(async () => {
