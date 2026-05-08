@@ -1,16 +1,9 @@
 import * as SQLite from "expo-sqlite";
 import type { SQLiteDatabase } from "expo-sqlite";
+import * as Crypto from "expo-crypto";
 
 import { vaultService } from "@/src/services/vaultService";
 import { sha256 } from "@/src/utils/sha256";
-
-function generateUUID(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
   if (!value) return fallback;
@@ -131,7 +124,7 @@ class SessionService {
   async createSession(): Promise<Session> {
     const now = Date.now();
     const session: Session = {
-      id: generateUUID(),
+      id: Crypto.randomUUID(),
       createdAt: now,
       startTime: now,
       duration: 0,
@@ -254,7 +247,7 @@ class SessionService {
         lockedAt,
       };
 
-      closed.hash = sha256(this.buildCanonical(closed));
+      closed.hash = await sha256(this.buildCanonical(closed));
 
       const db = await this.getDb();
       await this.persistSessionRow(db, closed);

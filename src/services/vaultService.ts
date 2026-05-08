@@ -29,7 +29,7 @@ async function keystream(secret: string, nonce: string, length: number) {
   const bytes: number[] = [];
   let counter = 0;
   while (bytes.length < length) {
-    const block = sha256(`${secret}:${nonce}:${counter}`);
+    const block = await sha256(`${secret}:${nonce}:${counter}`);
     bytes.push(...hexToBytes(block));
     counter += 1;
   }

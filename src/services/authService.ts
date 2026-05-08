@@ -14,8 +14,8 @@ function makeSalt() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-async function hashPasscode(passcode: string, salt: string) {
-  return sha256(`${salt}:${passcode}`);
+async function hashPasscode(passcode: string, salt: string): Promise<string> {
+  return await sha256(`${salt}:${passcode}`);
 }
 
 class AuthService {
