@@ -44,7 +44,14 @@
       "Bash(git pull *)",
       "Bash(git stash *)",
       "Bash(git rebase *)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "WebFetch(domain:data.geopf.fr)",
+      "WebFetch(domain:wxs.ign.fr)",
+      "Bash(curl -s \"https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetCapabilities\")",
+      "Bash(Select-String -Pattern \"CASSINI|ETATMAJOR|CADASTR|HISTORIQUE|SCAN\")",
+      "Bash(Select-Object -First 100)",
+      "Bash(curl -s \"https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetCapabilities\" -o /tmp/wmts_caps.xml)",
+      "Bash(curl -s \"https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetCapabilities\" -o \"C:/Users/arnau/AppData/Local/Temp/wmts_caps.xml\")"
     ]
   }
 }
