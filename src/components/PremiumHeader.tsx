@@ -8,6 +8,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { useFonts, Rajdhani_700Bold, Rajdhani_600SemiBold } from "@expo-google-fonts/rajdhani";
 import { COLORS } from "@/src/constants/colors";
 
 interface PremiumHeaderProps {
@@ -23,6 +24,7 @@ export default function PremiumHeader({
   style,
   fadeIn = false,
 }: PremiumHeaderProps) {
+  const [fontsLoaded] = useFonts({ Rajdhani_700Bold, Rajdhani_600SemiBold });
   const opacity = useRef(new Animated.Value(fadeIn ? 0 : 1)).current;
 
   useEffect(() => {
@@ -38,19 +40,25 @@ export default function PremiumHeader({
 
   return (
     <Animated.View style={[styles.row, style, { opacity }]}>
-      <View style={styles.logoRing}>
+      <View style={styles.logoWrap}>
         <Image
-          source={require("@/assets/images/walksense-mark-source-transparent.png")}
+          source={require("@/assets/images/walksense-mark.png")}
           style={styles.logo}
           resizeMode="contain"
         />
       </View>
       <View style={styles.divider} />
       <View style={styles.copy}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text
+          style={[styles.title, fontsLoaded && { fontFamily: "Rajdhani_700Bold" }]}
+          numberOfLines={1}
+        >
           WalkSense
         </Text>
-        <Text style={styles.subtitle} numberOfLines={1}>
+        <Text
+          style={[styles.subtitle, fontsLoaded && { fontFamily: "Rajdhani_600SemiBold" }]}
+          numberOfLines={1}
+        >
           {subtitle}
         </Text>
       </View>
@@ -65,26 +73,23 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
-  logoRing: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1.5,
-    borderColor: "rgba(212, 175, 55, 0.38)",
+  logoWrap: {
+    width: 56,
+    height: 56,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(212, 175, 55, 0.05)",
     shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.55,
-    shadowRadius: 18,
-    elevation: 14,
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 12,
   },
   logo: {
-    width: 48,
-    height: 48,
+    width: 56,
+    height: 56,
+    borderRadius: 10,
   },
   divider: {
     width: 1,
@@ -93,19 +98,19 @@ const styles = StyleSheet.create({
   },
   copy: {
     flex: 1,
-    gap: 4,
+    gap: 1,
   },
   title: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "700",
     color: COLORS.accent,
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 10,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "600",
     color: "#807C74",
-    letterSpacing: 1.3,
+    letterSpacing: 1.4,
   },
   right: {
     alignItems: "flex-end",
