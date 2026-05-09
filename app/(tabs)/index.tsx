@@ -22,8 +22,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import BrandLogo from "@/src/components/BrandLogo";
 import PremiumBackground from "@/src/components/PremiumBackground";
+import PremiumHeader from "@/src/components/PremiumHeader";
 import { COLORS } from "@/src/constants/colors";
 import { Session, sessionService } from "@/src/services/sessionService";
 import { formatDistanceMeters } from "@/src/utils/format";
@@ -715,25 +715,21 @@ export default function HomeScreen() {
           imageStyle={styles.heroImage}
         >
           <View style={styles.heroOverlay} />
-          <View style={styles.header}>
-            <BrandLogo compact />
-            <View style={styles.headerCopy}>
-              <Text style={styles.headerTitle}>WalkSense</Text>
-              <Text style={styles.headerSubtitle}>
-                {sessions.length} session{sessions.length !== 1 ? "s" : ""}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.settingsButton}
-              onPress={toggleSelectionMode}
-            >
-              <Ionicons
-                name={selectionMode ? "close" : "checkbox-outline"}
-                size={20}
-                color={COLORS.text}
-              />
-            </TouchableOpacity>
-          </View>
+          <PremiumHeader
+            style={styles.header}
+            rightContent={
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={toggleSelectionMode}
+              >
+                <Ionicons
+                  name={selectionMode ? "close" : "checkbox-outline"}
+                  size={20}
+                  color={COLORS.text}
+                />
+              </TouchableOpacity>
+            }
+          />
           <View style={styles.statsGrid}>
             <StatTile
               value={activeCount}
@@ -805,7 +801,6 @@ export default function HomeScreen() {
           </View>
         ) : sessions.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <BrandLogo />
             <Text style={styles.emptyTitle}>Aucune session</Text>
             <Text style={styles.emptySubtitle}>
               Allez a l&apos;onglet &quot;Explore&quot; pour commencer
@@ -925,7 +920,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 14,
     marginTop: 0,
     marginBottom: 10,
-    minHeight: 224,
+    minHeight: 200,
     overflow: "hidden",
     borderRadius: 28,
     borderWidth: 1,
@@ -934,37 +929,18 @@ const styles = StyleSheet.create({
   },
 
   heroImage: {
-    opacity: 0.92,
+    opacity: 0.88,
   },
 
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.30)",
+    backgroundColor: "rgba(0, 0, 0, 0.52)",
   },
 
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
     paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-
-  headerCopy: {
-    flex: 1,
-  },
-
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: COLORS.accent,
-    marginBottom: 2,
-  },
-
-  headerSubtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    paddingTop: 18,
+    paddingBottom: 14,
   },
 
   settingsButton: {
