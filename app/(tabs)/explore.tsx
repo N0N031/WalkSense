@@ -19,6 +19,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  Image,
   ImageBackground,
   ScrollView,
   StatusBar,
@@ -88,6 +89,12 @@ export default function ExploreScreen() {
     : null;
   const canStartWithGps =
     startGpsAccuracy !== null && startGpsAccuracy <= 40 && !isRunning;
+  const statusTop = StatusBar.currentHeight ?? insets.top;
+  const mapHeaderTop = statusTop + 6;
+  const mapHeaderHeight = 62;
+  const mapControlsTop = mapHeaderTop + mapHeaderHeight + 14;
+  const mapControlsBottom = mapControlsTop + 164;
+  const mapToastTop = mapHeaderTop + mapHeaderHeight + 10;
 
   // ✅ EFFECT: Update coverage cells when GPS point arrives
   useEffect(() => {
@@ -308,7 +315,26 @@ export default function ExploreScreen() {
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <PremiumHeader fadeIn style={styles.emptyBrand} />
+            <View style={styles.emptyBrandHero}>
+              <View style={styles.emptyLogoGlow}>
+                <Image
+                  source={require("@/assets/images/walksense-mark.png")}
+                  style={styles.emptyLogo}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text
+                style={styles.emptyBrandTitle}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+              >
+                WalkSense
+              </Text>
+              <Text style={styles.emptyBrandSubtitle} numberOfLines={1}>
+                Terrain Tracking
+              </Text>
+            </View>
 
             <View style={styles.emptyDivider}>
               <View style={styles.emptyDividerLine} />
@@ -372,13 +398,10 @@ export default function ExploreScreen() {
       <View
         style={[
           styles.mapHeader,
-          { top: (StatusBar.currentHeight ?? insets.top) + 6 },
+          { top: mapHeaderTop },
         ]}
       >
         <PremiumHeader compact style={[styles.brandRow, { flex: 1 }]} />
-        <View style={styles.mapModeButton}>
-          <Ionicons name="map-outline" size={22} color={COLORS.accent} />
-        </View>
       </View>
       <View style={panelsCollapsed ? styles.mapAreaExpanded : styles.mapArea}>
         <SessionMap
@@ -386,7 +409,7 @@ export default function ExploreScreen() {
           events={session.events ?? []}
           userLocation={userLocation}
           onEventPress={openClassify}
-          controlsTopOffset={(StatusBar.currentHeight ?? insets.top) + 82}
+          controlsTopOffset={mapControlsTop}
         />
       </View>
 
@@ -402,7 +425,7 @@ export default function ExploreScreen() {
       <TouchableOpacity
         style={[
           styles.redFilterButton,
-          { top: (StatusBar.currentHeight ?? insets.top) + 6 },
+          { top: mapControlsBottom + 12 },
           redFilter && styles.redFilterButtonActive,
         ]}
         onPress={() => setRedFilter(!redFilter)}
@@ -413,11 +436,7 @@ export default function ExploreScreen() {
       <TouchableOpacity
         style={[
           styles.collapseButton,
-          {
-            top: panelsCollapsed
-              ? (StatusBar.currentHeight ?? insets.top) + 130
-              : (StatusBar.currentHeight ?? insets.top) + 182,
-          },
+          { top: mapControlsBottom + 68 },
         ]}
         onPress={() => setPanelsCollapsed((value) => !value)}
       >
@@ -512,7 +531,7 @@ export default function ExploreScreen() {
       <Toast
         message={toast}
         onDone={() => setToast(null)}
-        topOffset={(StatusBar.currentHeight ?? insets.top) + 78}
+        topOffset={mapToastTop}
       />
       {redFilter ? <View style={styles.redFilterOverlay} /> : null}
     </View>
@@ -568,16 +587,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  mapModeButton: {
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.28)",
-    backgroundColor: COLORS.glassStrong,
-  },
   mapArea: {
     flex: 3,
     overflow: "hidden",
@@ -604,9 +613,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 12,
   },
-  emptyBrand: {
+  emptyBrandHero: {
     width: "100%",
-    paddingHorizontal: 8,
+    minHeight: 190,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingTop: 6,
+    paddingHorizontal: 12,
+  },
+  emptyLogoGlow: {
+    width: 98,
+    height: 98,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 26,
+    shadowColor: COLORS.accent,
+    shadowOpacity: 0.34,
+    shadowRadius: 22,
+    elevation: 12,
+  },
+  emptyLogo: {
+    width: 88,
+    height: 88,
+    borderRadius: 18,
+  },
+  emptyBrandTitle: {
+    color: COLORS.accent,
+    fontSize: 38,
+    lineHeight: 44,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  emptyBrandSubtitle: {
+    color: "#D8D2C4",
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: "700",
+    textAlign: "center",
   },
   emptyDivider: {
     width: "62%",
