@@ -61,7 +61,7 @@ function SessionMap(
 }: SessionMapProps,
 ref: React.Ref<SessionMapHandle>,
 ) {
-  const [internalMapType] = useState<MapType>("google");
+  const [internalMapType] = useState<MapType>("osm");
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
   const mapType = controlledMapType ?? internalMapType;

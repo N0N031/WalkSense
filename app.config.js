@@ -1,0 +1,94 @@
+export default {
+  expo: {
+    name: "WalkSense",
+    slug: "WalkSense",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/images/icons/ios/appicon.png",
+    splash: {
+      image: "./assets/images/walksense-mark-source-transparent.png",
+      imageWidth: 170,
+      resizeMode: "contain",
+      backgroundColor: "#050505",
+    },
+    scheme: "walksense",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: true,
+
+    ios: {
+      supportsTablet: false,
+      bundleIdentifier: "com.anonymous.WalkSense",
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
+    },
+
+    android: {
+      package: "com.anonymous.WalkSense",
+      config: {
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY,
+        },
+      },
+      adaptiveIcon: {
+        foregroundImage:
+          "./assets/images/icons/android/adaptive-foreground.png",
+        backgroundColor: "#050505",
+      },
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
+      permissions: [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+      ],
+    },
+
+    web: {
+      output: "static",
+      favicon: "./assets/images/icons/ios/appicon.png",
+    },
+
+    plugins: [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          locationAlwaysAndWhenInUsePermission:
+            "WalkSense utilise votre position pour enregistrer vos sessions de détection terrain.",
+          locationWhenInUsePermission:
+            "WalkSense utilise votre position pour enregistrer vos sessions de détection terrain.",
+          isAndroidBackgroundLocationEnabled: true,
+        },
+      ],
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/images/walksense-mark-source-transparent.png",
+          imageWidth: 170,
+          resizeMode: "contain",
+          backgroundColor: "#050505",
+          dark: {
+            backgroundColor: "#050505",
+          },
+        },
+      ],
+      "expo-secure-store",
+    ],
+
+    experiments: {
+      typedRoutes: true,
+      reactCompiler: false,
+    },
+
+    extra: {
+      router: {},
+      eas: {
+        projectId: "dda91383-427d-40f9-ac16-5a36d8fd7c7e",
+      },
+    },
+  },
+};

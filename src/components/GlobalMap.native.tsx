@@ -48,7 +48,7 @@ export default function GlobalMap({
   userLocation,
   controlsTopOffset = 10,
 }: GlobalMapProps) {
-  const [mapType, setMapType] = useState<MapType>("satellite");
+  const [mapType, setMapType] = useState<MapType>("osm");
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
 
@@ -136,6 +136,7 @@ export default function GlobalMap({
             urlTemplate={tileUrlTemplate}
             maximumZ={zoomLimits.max}
             tileSize={256}
+            zIndex={1}
             flipY={false}
           />
         ) : null}
