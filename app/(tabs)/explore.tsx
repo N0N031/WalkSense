@@ -5,16 +5,9 @@ import SessionHud from "@/src/components/SessionHud";
 import SessionMap from "@/src/components/SessionMap";
 import Toast from "@/src/components/Toast";
 import { COLORS } from "@/src/constants/colors";
-import type { CoverageCellEntity } from "@/src/data/gridEntities";
-import { sessionRepository } from "@/src/data/sessionRepository";
 import { useGps } from "@/src/hooks/useGps";
 import { useSession } from "@/src/hooks/useSession";
 import { useTimer } from "@/src/hooks/useTimer";
-import {
-  deduplicateCells,
-  generateCellsFromPoint,
-  generateCoverageFromTrajectory,
-} from "@/src/services/GridService";
 import {
   GpsPoint,
   MarkedEvent,
@@ -46,9 +39,6 @@ function formatDuration(seconds: number): string {
 function makeId() {
   return Math.random().toString(36).slice(2, 11);
 }
-
-const GRID_DISPLAY_LIMIT = 100;
-const GRID_PREVIEW_POINT_LIMIT = 100;
 
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
@@ -84,75 +74,15 @@ export default function ExploreScreen() {
   const [classifyVisible, setClassifyVisible] = useState(false);
   const [initialDistance, setInitialDistance] = useState(0);
   const [redFilter, setRedFilter] = useState(false);
-  const [coverageCells, setCoverageCells] = useState<CoverageCellEntity[]>([]);
-  const [showGrid, setShowGrid] = useState(true);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
 
   const sessionId = session?.id;
-  const sessionCoverageCells = session?.coverageCells;
   const totalDistance = initialDistance + liveDistance;
   const gpsTrace = useMemo(() => session?.gpsTrace ?? [], [session?.gpsTrace]);
   const userLocation = location
     ? { latitude: location.lat, longitude: location.lon }
     : null;
 
-  // ✅ SINGLE EFFECT: Load grid data (persisted or preview)
-  useEffect(() => {
-    if (!sessionId || !isRunning) return;
-
-    let active = true;
-
-    async function loadGrid() {
-      if (!sessionId) {
-        setCoverageCells([]);
-        return;
-      }
-
-      // PHASE 1 : Display real-time buffer first
-      if (sessionCoverageCells && sessionCoverageCells.length > 0) {
-        if (active) {
-          setCoverageCells(sessionCoverageCells.slice(0, GRID_DISPLAY_LIMIT));
-        }
-        return;
-      }
-
-      try {
-
-        const persisted = await sessionRepository.getCoverageCellsBySession(
-          sessionId,
-          GRID_DISPLAY_LIMIT,
-        );
-
-        if (!active) return;
-
-        if (persisted.length > 0) {
-          setCoverageCells(persisted);
-          return;
-        }
-
-        // PHASE 3: Generate preview from last N GPS points
-        const previewPoints = gpsTrace.slice(-GRID_PREVIEW_POINT_LIMIT);
-        if (previewPoints.length > 0) {
-          const preview = await generateCoverageFromTrajectory({
-            sessionId,
-            gpsPoints: previewPoints,
-          });
-          if (active) {
-            setCoverageCells(preview.slice(0, GRID_DISPLAY_LIMIT));
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to load coverage cells:", err);
-        if (active) setCoverageCells([]);
-      }
-    }
-
-    loadGrid();
-
-    return () => {
-      active = false;
-    };
-  }, [sessionId, sessionCoverageCells, gpsTrace, isRunning]);
 
   // ✅ EFFECT: Update coverage cells when GPS point arrives
   useEffect(() => {
@@ -177,35 +107,7 @@ export default function ExploreScreen() {
       );
       if (alreadyExists) return prev;
 
-      // Add GPS point
-      const updated = { ...prev, gpsTrace: [...prev.gpsTrace, gpsPoint] };
-
-      // ✅ PHASE 4: Real-time grid calculation with throttling
-      try {
-        const now = Date.now();
-        const lastUpdate = updated.lastGridUpdateMs || 0;
-
-        // Check throttle: only update if enough time has passed
-        if (now - lastUpdate > updated.gridUpdateInterval) {
-          // Calculate cells from fresh point only
-          const affectedCells = generateCellsFromPoint(sessionId, gpsPoint, 1);
-
-          // Merge + deduplicate in memory
-          const merged = deduplicateCells([
-            ...updated.coverageCells,
-            ...affectedCells,
-          ]);
-
-          // Limit to 100 cells in memory
-          updated.coverageCells = merged.slice(0, 100);
-          updated.lastGridUpdateMs = now;
-        }
-      } catch (err) {
-        console.warn("Grid realtime calc error:", err);
-        // Continue without blocking GPS trace
-      }
-
-      return updated;
+      return { ...prev, gpsTrace: [...prev.gpsTrace, gpsPoint] };
     });
 
     // Persist to DB asynchronously (non-blocking)
@@ -222,7 +124,6 @@ export default function ExploreScreen() {
       startTimer();
       setInitialDistance(0);
       setRedFilter(false);
-      setShowGrid(true);
       setToast("Session démarrée");
     } catch (err) {
       console.error("Failed to start session:", err);
@@ -451,8 +352,6 @@ export default function ExploreScreen() {
           gpsTrace={gpsTrace}
           events={session.events ?? []}
           userLocation={userLocation}
-          coverageCells={coverageCells}
-          showGrid={showGrid}
           onEventPress={openClassify}
         />
       </View>
@@ -476,20 +375,6 @@ export default function ExploreScreen() {
         <Ionicons name="filter" size={20} color={COLORS.accent} />
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.gridToggleButton,
-          { top: 160 },
-          showGrid && styles.gridToggleButtonActive,
-        ]}
-        onPress={() => setShowGrid(!showGrid)}
-      >
-        <Ionicons
-          name="grid"
-          size={20}
-          color={showGrid ? "white" : COLORS.accent}
-        />
-      </TouchableOpacity>
 
       <TouchableOpacity
         style={[
@@ -836,21 +721,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.glassStrong,
   },
   redFilterButtonActive: {
-    backgroundColor: COLORS.accent,
-  },
-  gridToggleButton: {
-    position: "absolute",
-    right: 14,
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    backgroundColor: COLORS.glassStrong,
-  },
-  gridToggleButtonActive: {
     backgroundColor: COLORS.accent,
   },
   collapseButton: {
