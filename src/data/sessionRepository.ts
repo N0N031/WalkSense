@@ -12,6 +12,8 @@ import type {
 
 type SessionRow = {
   id: string;
+  name: string | null;
+  commune: string | null;
   createdAt: number;
   startTime: number;
   endTime: number | null;
@@ -183,6 +185,20 @@ class SessionRepository {
     );
   }
 
+  async updateSessionMeta(id: string, name: string): Promise<void> {
+    const db = await getDb();
+    await db.runAsync("UPDATE sessions SET name = ? WHERE id = ?", name, id);
+  }
+
+  async updateSessionCommune(id: string, commune: string): Promise<void> {
+    const db = await getDb();
+    await db.runAsync(
+      "UPDATE sessions SET commune = ? WHERE id = ?",
+      commune,
+      id,
+    );
+  }
+
   private async hydrateSessions(rows: SessionRow[]): Promise<Session[]> {
     if (rows.length === 0) return [];
 
@@ -258,9 +274,11 @@ class SessionRepository {
     const db = await getDb();
     await db.runAsync(
       `INSERT INTO sessions (
-        id, createdAt, startTime, endTime, duration, distance, status, metadata, hash, lockedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, name, commune, createdAt, startTime, endTime, duration, distance, status, metadata, hash, lockedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
+        name = excluded.name,
+        commune = excluded.commune,
         createdAt = excluded.createdAt,
         startTime = excluded.startTime,
         endTime = excluded.endTime,
@@ -271,6 +289,8 @@ class SessionRepository {
         hash = excluded.hash,
         lockedAt = excluded.lockedAt`,
       session.id,
+      session.name ?? null,
+      session.commune ?? null,
       session.createdAt,
       session.startTime,
       session.endTime ?? null,
@@ -363,6 +383,8 @@ class SessionRepository {
   ): Session {
     return {
       id: row.id,
+      name: row.name ?? undefined,
+      commune: row.commune ?? undefined,
       createdAt: row.createdAt,
       startTime: row.startTime,
       endTime: row.endTime ?? undefined,

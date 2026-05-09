@@ -1,6 +1,7 @@
 import * as SQLite from "expo-sqlite";
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+const DB_VERSION = 2;
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
@@ -28,7 +29,9 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
       status TEXT NOT NULL,
       metadata TEXT NOT NULL DEFAULT '{}',
       hash TEXT,
-      lockedAt INTEGER
+      lockedAt INTEGER,
+      name TEXT,
+      commune TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
@@ -79,6 +82,7 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
 
   `);
 
+  await ensureSessionMetaColumns(db);
   await ensureGpsPointGridColumns(db);
 
   if (hadSnakeCaseSchema) {
@@ -116,6 +120,29 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
       DROP TABLE IF EXISTS gps_points_legacy_snake;
       DROP TABLE IF EXISTS sessions_legacy_snake;
     `);
+  }
+
+  await db.execAsync(`PRAGMA user_version = ${DB_VERSION};`);
+}
+
+async function ensureSessionMetaColumns(
+  db: SQLite.SQLiteDatabase,
+): Promise<void> {
+  const columns = await db.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(sessions)",
+  );
+  const names = new Set(columns.map((column) => column.name));
+
+  const migrations: string[] = [];
+  if (!names.has("name")) {
+    migrations.push("ALTER TABLE sessions ADD COLUMN name TEXT");
+  }
+  if (!names.has("commune")) {
+    migrations.push("ALTER TABLE sessions ADD COLUMN commune TEXT");
+  }
+
+  for (const statement of migrations) {
+    await db.execAsync(statement);
   }
 }
 

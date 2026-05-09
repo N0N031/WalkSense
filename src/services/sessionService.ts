@@ -39,6 +39,8 @@ export interface MarkedEvent {
 
 export interface Session {
   id: string;
+  name?: string;
+  commune?: string;
   createdAt: number;
   startTime: number;
   endTime?: number;
@@ -60,10 +62,15 @@ export interface Session {
 class SessionService {
   private currentSessionId: string | null = null;
 
-  async createSession(): Promise<Session> {
+  async createSession(input?: {
+    name?: string;
+    commune?: string;
+  }): Promise<Session> {
     const now = Date.now();
     const session: Session = {
       id: Crypto.randomUUID(),
+      name: input?.name,
+      commune: input?.commune,
       createdAt: now,
       startTime: now,
       duration: 0,
@@ -83,6 +90,14 @@ class SessionService {
 
   async saveSession(session: Session): Promise<void> {
     await sessionRepository.updateSession(session);
+  }
+
+  async updateSessionMeta(id: string, name: string): Promise<void> {
+    await sessionRepository.updateSessionMeta(id, name);
+  }
+
+  async updateSessionCommune(id: string, commune: string): Promise<void> {
+    await sessionRepository.updateSessionCommune(id, commune);
   }
 
   async getSessions(): Promise<Session[]> {
