@@ -6,10 +6,22 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 
-const TILES = {
+const IGN = (layer: string, fmt = "image/png") =>
+  `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
+
+const TILES: Record<string, string> = {
   osm: "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-  ign: "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
-  "ign-ortho": "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
+  ign: IGN("GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2"),
+  "ign-ortho": IGN("ORTHOIMAGERY.ORTHOPHOTOS", "image/jpeg"),
+  "ign-cassini": IGN("GEOGRAPHICALGRIDSYSTEMS.CASSINI"),
+  "ign-etatmajor": IGN("GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40"),
+  "ign-cadastre": IGN("CADASTRALPARCELS.PARCELLAIRE_EXPRESS"),
+};
+
+const TILE_MAX_ZOOM: Record<string, number> = {
+  "ign-ortho": 21,
+  "ign-cassini": 15,
+  "ign-etatmajor": 15,
 };
 
 export interface SessionTrace {
@@ -37,16 +49,8 @@ export default function GlobalMap({
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
 
-  const tileUrlTemplate =
-    mapType === "ign"
-      ? TILES.ign
-      : mapType === "ign-ortho"
-        ? TILES["ign-ortho"]
-        : mapType === "osm"
-          ? TILES.osm
-          : undefined;
-
-  const tileMaxZoom = mapType === "ign-ortho" ? 21 : 19;
+  const tileUrlTemplate = TILES[mapType] ?? undefined;
+  const tileMaxZoom = TILE_MAX_ZOOM[mapType] ?? 19;
 
   const nativeMapType =
     mapType === "satellite"
@@ -214,11 +218,19 @@ export default function GlobalMap({
       >
         {mapType === "satellite"
           ? "© Esri, Maxar"
-          : mapType === "ign"
-            ? "© IGN Géoportail"
+          : mapType === "osm"
+            ? "© OpenStreetMap contributors"
             : mapType === "ign-ortho"
               ? "© IGN Orthophotos"
-              : "© OpenStreetMap contributors"}
+              : mapType === "ign-cassini"
+                ? "© IGN Cassini XVIIIe"
+                : mapType === "ign-etatmajor"
+                  ? "© IGN État-Major XIXe"
+                  : mapType === "ign-cadastre"
+                    ? "© IGN Cadastre"
+                    : mapType.startsWith("ign")
+                      ? "© IGN Géoportail"
+                      : "© Google"}
       </Text>
     </View>
   );
@@ -288,12 +300,7 @@ const styles = StyleSheet.create({
   layerToggle: {
     position: "absolute",
     right: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: "rgba(5,8,5,0.86)",
-    borderWidth: 1,
-    borderColor: "rgba(212,175,55,0.14)",
+    width: 192,
     elevation: 6,
     shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 6 },

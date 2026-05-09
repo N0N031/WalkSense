@@ -12,10 +12,22 @@ import React, {
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 
-const TILES = {
+const IGN = (layer: string, fmt = "image/png") =>
+  `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
+
+const TILES: Record<string, string> = {
   osm: "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-  ign: "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
-  "ign-ortho": "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
+  ign: IGN("GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2"),
+  "ign-ortho": IGN("ORTHOIMAGERY.ORTHOPHOTOS", "image/jpeg"),
+  "ign-cassini": IGN("GEOGRAPHICALGRIDSYSTEMS.CASSINI"),
+  "ign-etatmajor": IGN("GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40"),
+  "ign-cadastre": IGN("CADASTRALPARCELS.PARCELLAIRE_EXPRESS"),
+};
+
+const TILE_MAX_ZOOM: Record<string, number> = {
+  "ign-ortho": 21,
+  "ign-cassini": 15,
+  "ign-etatmajor": 15,
 };
 
 export interface SessionMapProps {
@@ -37,16 +49,8 @@ export default function SessionMap({
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
 
-  const tileUrlTemplate =
-    mapType === "ign"
-      ? TILES.ign
-      : mapType === "ign-ortho"
-        ? TILES["ign-ortho"]
-        : mapType === "osm"
-          ? TILES.osm
-          : undefined;
-
-  const tileMaxZoom = mapType === "ign-ortho" ? 21 : 19;
+  const tileUrlTemplate = TILES[mapType] ?? undefined;
+  const tileMaxZoom = TILE_MAX_ZOOM[mapType] ?? 19;
 
   const nativeMapType =
     mapType === "satellite"
@@ -180,14 +184,23 @@ export default function SessionMap({
         <MapTypeToggle currentType={mapType} onChange={setMapType} />
       </View>
 
+
       <Text style={styles.attribution}>
         {mapType === "satellite"
           ? "© Google"
-          : mapType === "ign"
-            ? "© IGN Géoportail"
+          : mapType === "osm"
+            ? "© OpenStreetMap contributors"
             : mapType === "ign-ortho"
               ? "© IGN Orthophotos"
-              : "© OpenStreetMap contributors"}
+              : mapType === "ign-cassini"
+                ? "© IGN Cassini XVIIIe"
+                : mapType === "ign-etatmajor"
+                  ? "© IGN État-Major XIXe"
+                  : mapType === "ign-cadastre"
+                    ? "© IGN Cadastre"
+                    : mapType.startsWith("ign")
+                      ? "© IGN Géoportail"
+                      : "© Google"}
       </Text>
     </View>
   );
@@ -241,9 +254,9 @@ const styles = StyleSheet.create({
   },
   mapTypeToggle: {
     position: "absolute",
-    left: 10,
     right: 10,
-    bottom: 14,
+    top: 10,
+    width: 192,
   },
   attribution: {
     position: "absolute",
