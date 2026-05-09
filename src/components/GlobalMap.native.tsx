@@ -9,6 +9,7 @@ import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 const TILES = {
   osm: "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
   ign: "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
+  "ign-ortho": "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
 };
 
 export interface SessionTrace {
@@ -37,7 +38,15 @@ export default function GlobalMap({
   const centeredOnFirstLocationRef = useRef(false);
 
   const tileUrlTemplate =
-    mapType === "ign" ? TILES.ign : mapType === "osm" ? TILES.osm : undefined;
+    mapType === "ign"
+      ? TILES.ign
+      : mapType === "ign-ortho"
+        ? TILES["ign-ortho"]
+        : mapType === "osm"
+          ? TILES.osm
+          : undefined;
+
+  const tileMaxZoom = mapType === "ign-ortho" ? 21 : 19;
 
   const nativeMapType =
     mapType === "satellite"
@@ -117,7 +126,7 @@ export default function GlobalMap({
         {tileUrlTemplate ? (
           <UrlTile
             urlTemplate={tileUrlTemplate}
-            maximumZ={19}
+            maximumZ={tileMaxZoom}
             tileSize={256}
             flipY={false}
           />
@@ -206,8 +215,10 @@ export default function GlobalMap({
         {mapType === "satellite"
           ? "© Esri, Maxar"
           : mapType === "ign"
-            ? "© IGN Geoportail"
-            : "© OpenStreetMap contributors"}
+            ? "© IGN Géoportail"
+            : mapType === "ign-ortho"
+              ? "© IGN Orthophotos"
+              : "© OpenStreetMap contributors"}
       </Text>
     </View>
   );

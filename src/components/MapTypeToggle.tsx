@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-export type MapType = "google" | "satellite" | "osm" | "ign";
+export type MapType = "google" | "satellite" | "osm" | "ign" | "ign-ortho";
 
 interface MapTypeToggleProps {
   currentType: MapType;
@@ -10,9 +10,10 @@ interface MapTypeToggleProps {
 
 const TYPES: { id: MapType; label: string }[] = [
   { id: "google", label: "Google" },
-  { id: "satellite", label: "Satellite" },
+  { id: "satellite", label: "Sat." },
   { id: "osm", label: "OSM" },
   { id: "ign", label: "IGN" },
+  { id: "ign-ortho", label: "Ortho" },
 ];
 
 export function MapTypeToggle({ currentType, onChange }: MapTypeToggleProps) {
