@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 import { sha256 } from "@/src/utils/sha256";
 
@@ -21,6 +22,30 @@ async function hashPasscode(passcode: string, salt: string): Promise<string> {
   return await sha256(`${salt}:${passcode}`);
 }
 
+async function canUseSecureStore(): Promise<boolean> {
+  if (Platform.OS === "web") return false;
+  try {
+    return await SecureStore.isAvailableAsync();
+  } catch {
+    return false;
+  }
+}
+
+async function getAuthProfileRaw(): Promise<string | null> {
+  if (await canUseSecureStore()) {
+    return await SecureStore.getItemAsync(PROFILE_KEY);
+  }
+  return await AsyncStorage.getItem(PROFILE_KEY);
+}
+
+async function setAuthProfileRaw(value: string): Promise<void> {
+  if (await canUseSecureStore()) {
+    await SecureStore.setItemAsync(PROFILE_KEY, value);
+    return;
+  }
+  await AsyncStorage.setItem(PROFILE_KEY, value);
+}
+
 class AuthService {
   private unlockedPasscode: string | null = null;
 
@@ -33,7 +58,7 @@ class AuthService {
   }
 
   async getProfile(): Promise<AuthProfile | null> {
-    const raw = await SecureStore.getItemAsync(PROFILE_KEY);
+    const raw = await getAuthProfileRaw();
     return raw ? JSON.parse(raw) : null;
   }
 
@@ -48,7 +73,7 @@ class AuthService {
       passcodeHash: await hashPasscode(passcode, salt),
       createdAt: Date.now(),
     };
-    await SecureStore.setItemAsync(PROFILE_KEY, JSON.stringify(profile));
+    await setAuthProfileRaw(JSON.stringify(profile));
     this.unlockedPasscode = passcode;
     return profile;
   }
@@ -98,6 +123,8 @@ class AuthService {
 export const authService = new AuthService();
 
 export async function migrateAuthToSecureStoreIfNeeded(): Promise<void> {
+  if (!(await canUseSecureStore())) return;
+
   const current = await SecureStore.getItemAsync(PROFILE_KEY);
   if (current) return;
 
