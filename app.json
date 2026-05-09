@@ -4,7 +4,7 @@
     "slug": "WalkSense",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/walksense-icon.png",
+    "icon": "./assets/images/icons/ios/appicon.png",
     "splash": {
       "image": "./assets/images/walksense-mark-source-transparent.png",
       "imageWidth": 170,
@@ -23,7 +23,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/walksense-mark-source-transparent.png",
+        "foregroundImage": "./assets/images/icons/android/adaptive-foreground.png",
         "backgroundColor": "#050505"
       },
       "edgeToEdgeEnabled": true,
@@ -39,7 +39,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/walksense-icon.png"
+      "favicon": "./assets/images/icons/ios/appicon.png"
     },
     "plugins": [
       "expo-router",

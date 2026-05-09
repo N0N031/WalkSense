@@ -13,7 +13,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 
 const TILES = {
-  osm: "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  osm: "https://tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png",
   ign: "https://wxs.ign.fr/geoportail/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
 };
 
@@ -83,6 +83,9 @@ export default function SessionMap({
         showsUserLocation={false}
         showsMyLocationButton={false}
         moveOnMarkerPress={false}
+        loadingEnabled
+        loadingBackgroundColor="#050505"
+        loadingIndicatorColor="#d4af37"
       >
         {tileUrlTemplate ? (
           <UrlTile

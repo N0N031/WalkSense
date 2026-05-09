@@ -7,7 +7,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 
 const TILES = {
-  osm: "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  osm: "https://tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png",
   ign: "https://wxs.ign.fr/geoportail/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
 };
 
@@ -106,6 +106,9 @@ export default function GlobalMap({
         maxZoomLevel={19}
         showsUserLocation={false}
         showsMyLocationButton={false}
+        loadingEnabled
+        loadingBackgroundColor="#050505"
+        loadingIndicatorColor="#d4af37"
         onMapReady={() => {
           if (userLocation) centerOnUser();
           else fitAll();
@@ -238,50 +241,53 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 10,
     width: 40,
-    height: 40,
+    height: 36,
     borderRadius: 8,
     backgroundColor: COLORS.glassStrong,
     borderWidth: 1,
     borderColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 3,
+    elevation: 6,
     shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
   },
   locateButton: {
     position: "absolute",
     left: 10,
     width: 40,
-    height: 40,
+    height: 36,
     borderRadius: 8,
     backgroundColor: COLORS.glassStrong,
     borderWidth: 1,
     borderColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 3,
+    elevation: 6,
     shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
   },
   buttonDisabled: {
     opacity: 0.4,
   },
   layerToggle: {
     position: "absolute",
-    top: 10,
     right: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: COLORS.glassStrong,
+    borderRadius: 10,
+    backgroundColor: "rgba(5,8,5,0.86)",
     borderWidth: 1,
-    borderColor: COLORS.border,
-    elevation: 3,
+    borderColor: "rgba(212,175,55,0.14)",
+    elevation: 6,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.32,
+    shadowRadius: 12,
   },
   layerToggleActive: {
     backgroundColor: COLORS.primary,

@@ -4,6 +4,7 @@ import * as Location from "expo-location";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -121,7 +122,7 @@ export default function MapScreen() {
         <GlobalMap
           traces={traces}
           userLocation={userLocation}
-          controlsTopOffset={insets.top + 110}
+          controlsTopOffset={insets.top + (StatusBar.currentHeight ?? 0) + 82}
           controlsBottomOffset={insets.bottom + 96}
         />
         {loading ? (
@@ -131,7 +132,12 @@ export default function MapScreen() {
         ) : null}
       </View>
 
-      <View style={[styles.header, { top: insets.top + 12 }]}>
+      <View
+        style={[
+          styles.header,
+          { top: (StatusBar.currentHeight ?? insets.top) + 8 },
+        ]}
+      >
         <View style={styles.headerCopy}>
           <Text style={styles.title}>Carte</Text>
           <Text style={styles.subtitle}>
@@ -149,7 +155,7 @@ export default function MapScreen() {
       <TouchableOpacity
         style={[
           styles.drawerButton,
-          { bottom: Math.max(insets.bottom, 8) + 106 },
+          { bottom: Math.max(insets.bottom, 8) + 96 },
         ]}
         onPress={() => setDrawerOpen(true)}
       >
@@ -174,21 +180,25 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 24,
     right: 24,
-    maxHeight: 112,
+    maxHeight: 92,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    backgroundColor: COLORS.glassStrong,
+    backgroundColor: "rgba(5,8,5,0.9)",
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 18,
   },
   title: {
     color: COLORS.text,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
   },
   subtitle: {

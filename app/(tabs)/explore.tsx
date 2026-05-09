@@ -1,10 +1,10 @@
 import BrandLogo from "@/src/components/BrandLogo";
 import ClassifySheet from "@/src/components/ClassifySheet";
+import { GpsIndicator } from "@/src/components/GpsIndicator";
 import SessionBottomSheet from "@/src/components/SessionBottomSheet";
 import SessionHud from "@/src/components/SessionHud";
 import SessionMap from "@/src/components/SessionMap";
 import Toast, { useToast } from "@/src/components/Toast";
-import { GpsIndicator } from "@/src/components/GpsIndicator";
 import { COLORS } from "@/src/constants/colors";
 import { useGps } from "@/src/hooks/useGps";
 import { useSession } from "@/src/hooks/useSession";
@@ -21,6 +21,7 @@ import {
   Alert,
   ImageBackground,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -87,7 +88,6 @@ export default function ExploreScreen() {
     : null;
   const canStartWithGps =
     startGpsAccuracy !== null && startGpsAccuracy <= 40 && !isRunning;
-
 
   // ✅ EFFECT: Update coverage cells when GPS point arrives
   useEffect(() => {
@@ -374,7 +374,11 @@ export default function ExploreScreen() {
               >
                 DÉMARRER UNE SESSION
               </Text>
-              <Ionicons name="chevron-forward" size={22} color={COLORS.accent} />
+              <Ionicons
+                name="chevron-forward"
+                size={22}
+                color={COLORS.accent}
+              />
             </TouchableOpacity>
           </ScrollView>
         </ImageBackground>
@@ -385,7 +389,12 @@ export default function ExploreScreen() {
   // ✅ View: Active session
   return (
     <View style={styles.container}>
-      <View style={[styles.mapHeader, { top: insets.top + 12 }]}>
+      <View
+        style={[
+          styles.mapHeader,
+          { top: insets.top + (StatusBar.currentHeight ?? 0) + 8 },
+        ]}
+      >
         <View style={styles.brandRow}>
           <BrandLogo compact />
           <View>
@@ -419,6 +428,7 @@ export default function ExploreScreen() {
       <TouchableOpacity
         style={[
           styles.redFilterButton,
+          { top: insets.top + (StatusBar.currentHeight ?? 0) + 8 },
           redFilter && styles.redFilterButtonActive,
         ]}
         onPress={() => setRedFilter(!redFilter)}
@@ -426,11 +436,14 @@ export default function ExploreScreen() {
         <Ionicons name="filter" size={20} color={COLORS.accent} />
       </TouchableOpacity>
 
-
       <TouchableOpacity
         style={[
           styles.collapseButton,
-          { top: panelsCollapsed ? 160 : 212 },
+          {
+            top: panelsCollapsed
+              ? insets.top + (StatusBar.currentHeight ?? 0) + 148
+              : insets.top + (StatusBar.currentHeight ?? 0) + 200,
+          },
         ]}
         onPress={() => setPanelsCollapsed((value) => !value)}
       >
@@ -454,9 +467,14 @@ export default function ExploreScreen() {
             { bottom: Math.max(insets.bottom, 8) + 156 },
           ]}
         >
-          <TouchableOpacity style={styles.compactAction} onPress={handleAddMarker}>
+          <TouchableOpacity
+            style={styles.compactAction}
+            onPress={handleAddMarker}
+          >
             <Ionicons name="add" size={24} color={COLORS.primary} />
-            <Text style={styles.compactActionText}>{session.events.length}</Text>
+            <Text style={styles.compactActionText}>
+              {session.events.length}
+            </Text>
           </TouchableOpacity>
           <View style={styles.compactMetric}>
             <Ionicons
@@ -465,7 +483,9 @@ export default function ExploreScreen() {
               color={isTracking ? COLORS.primary : COLORS.textTertiary}
             />
             <Text style={styles.compactMetricText}>
-              {location?.accuracy ? `GPS ${Math.round(location.accuracy)}m` : "GPS --"}
+              {location?.accuracy
+                ? `GPS ${Math.round(location.accuracy)}m`
+                : "GPS --"}
             </Text>
           </View>
         </View>
@@ -547,13 +567,23 @@ const styles = StyleSheet.create({
   },
   mapHeader: {
     position: "absolute",
-    left: 18,
-    right: 18,
-    zIndex: 20,
+    left: 14,
+    right: 14,
+    zIndex: 30,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: COLORS.glass,
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.10)",
+    shadowColor: COLORS.orPremium,
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 6,
   },
   brandRow: {
     flexDirection: "row",
@@ -563,8 +593,8 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     color: COLORS.accent,
-    fontSize: 24,
-    fontWeight: "900",
+    fontSize: 20,
+    fontWeight: "800",
   },
   brandSubtitle: {
     color: COLORS.textSecondary,
@@ -572,12 +602,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   mapModeButton: {
-    height: 48,
+    height: 40,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.glassStrong,
@@ -737,16 +767,19 @@ const styles = StyleSheet.create({
   },
   redFilterButton: {
     position: "absolute",
-    top: 92,
     right: 14,
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.accent,
     backgroundColor: COLORS.glassStrong,
+    shadowColor: COLORS.glowGreen,
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    elevation: 6,
   },
   redFilterButtonActive: {
     backgroundColor: COLORS.accent,
@@ -754,14 +787,18 @@ const styles = StyleSheet.create({
   collapseButton: {
     position: "absolute",
     right: 14,
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: COLORS.accent,
     backgroundColor: COLORS.glassStrong,
+    shadowColor: COLORS.orPremium,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
   },
   compactDock: {
     position: "absolute",
@@ -806,7 +843,7 @@ const styles = StyleSheet.create({
   },
   control: {
     flex: 1,
-    height: 56,
+    height: 50,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -814,6 +851,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.16)",
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 4,
   },
   controlText: {
     color: "white",
