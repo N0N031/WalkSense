@@ -370,10 +370,10 @@ export default function ExploreScreen() {
       <View
         style={[
           styles.mapHeader,
-          { top: insets.top + (StatusBar.currentHeight ?? 0) + 8 },
+          { top: (StatusBar.currentHeight ?? insets.top) + 6 },
         ]}
       >
-        <PremiumHeader style={[styles.brandRow, { flex: 1 }]} />
+        <PremiumHeader compact style={[styles.brandRow, { flex: 1 }]} />
         <View style={styles.mapModeButton}>
           <Ionicons name="map-outline" size={22} color={COLORS.accent} />
         </View>
@@ -399,7 +399,7 @@ export default function ExploreScreen() {
       <TouchableOpacity
         style={[
           styles.redFilterButton,
-          { top: insets.top + (StatusBar.currentHeight ?? 0) + 8 },
+          { top: (StatusBar.currentHeight ?? insets.top) + 6 },
           redFilter && styles.redFilterButtonActive,
         ]}
         onPress={() => setRedFilter(!redFilter)}
@@ -412,8 +412,8 @@ export default function ExploreScreen() {
           styles.collapseButton,
           {
             top: panelsCollapsed
-              ? insets.top + (StatusBar.currentHeight ?? 0) + 148
-              : insets.top + (StatusBar.currentHeight ?? 0) + 200,
+              ? (StatusBar.currentHeight ?? insets.top) + 130
+              : (StatusBar.currentHeight ?? insets.top) + 182,
           },
         ]}
         onPress={() => setPanelsCollapsed((value) => !value)}

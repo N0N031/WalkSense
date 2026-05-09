@@ -306,12 +306,6 @@ const styles = StyleSheet.create({
   layerToggle: {
     position: "absolute",
     right: 10,
-    width: 192,
-    elevation: 6,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.32,
-    shadowRadius: 12,
   },
   layerToggleActive: {
     backgroundColor: COLORS.primary,
