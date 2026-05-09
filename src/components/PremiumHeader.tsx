@@ -38,13 +38,14 @@ export default function PremiumHeader({
 
   return (
     <Animated.View style={[styles.row, style, { opacity }]}>
-      <View style={styles.logoWrap}>
+      <View style={styles.logoRing}>
         <Image
           source={require("@/assets/images/walksense-mark-source-transparent.png")}
           style={styles.logo}
           resizeMode="contain"
         />
       </View>
+      <View style={styles.divider} />
       <View style={styles.copy}>
         <Text style={styles.title} numberOfLines={1}>
           WalkSense
@@ -64,38 +65,47 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
-  logoWrap: {
-    width: 68,
-    height: 68,
+  logoRing: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1.5,
+    borderColor: "rgba(212, 175, 55, 0.38)",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(212, 175, 55, 0.05)",
     shadowColor: COLORS.accent,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    elevation: 10,
+    shadowOpacity: 0.55,
+    shadowRadius: 18,
+    elevation: 14,
   },
   logo: {
-    width: 68,
-    height: 68,
+    width: 48,
+    height: 48,
+  },
+  divider: {
+    width: 1,
+    height: 34,
+    backgroundColor: "rgba(212, 175, 55, 0.22)",
   },
   copy: {
     flex: 1,
-    gap: 3,
+    gap: 4,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: COLORS.accent,
-    letterSpacing: 0.1,
+    letterSpacing: 0.3,
   },
   subtitle: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#A8A49A",
-    letterSpacing: 1.8,
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#807C74",
+    letterSpacing: 1.3,
   },
   right: {
     alignItems: "flex-end",
