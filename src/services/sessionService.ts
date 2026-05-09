@@ -1,11 +1,6 @@
 import * as Crypto from "expo-crypto";
 
-import type { CoverageCellEntity } from "@/src/data/gridEntities";
 import { sessionRepository } from "@/src/data/sessionRepository";
-import {
-    generateCoverageFromTrajectory,
-    persistCoverageCells,
-} from "@/src/services/GridService";
 import { sha256 } from "@/src/utils/sha256";
 
 export interface GpsPoint {
@@ -44,6 +39,8 @@ export interface MarkedEvent {
 
 export interface Session {
   id: string;
+  name?: string;
+  commune?: string;
   createdAt: number;
   startTime: number;
   endTime?: number;
@@ -60,19 +57,20 @@ export interface Session {
   };
   hash?: string;
   lockedAt?: number;
-  // PHASE 4 : Real-time grid buffer
-  coverageCells: CoverageCellEntity[];
-  lastGridUpdateMs: number;
-  gridUpdateInterval: number; // ms min between grid updates (throttle)
 }
 
 class SessionService {
   private currentSessionId: string | null = null;
 
-  async createSession(): Promise<Session> {
+  async createSession(input?: {
+    name?: string;
+    commune?: string;
+  }): Promise<Session> {
     const now = Date.now();
     const session: Session = {
       id: Crypto.randomUUID(),
+      name: input?.name,
+      commune: input?.commune,
       createdAt: now,
       startTime: now,
       duration: 0,
@@ -83,10 +81,6 @@ class SessionService {
       metadata: {
         privateMode: false,
       },
-      // PHASE 4 : Initialize real-time grid buffer
-      coverageCells: [],
-      lastGridUpdateMs: 0,
-      gridUpdateInterval: 500, // max 2 updates/sec
     };
 
     await sessionRepository.insertSession(session);
@@ -96,6 +90,14 @@ class SessionService {
 
   async saveSession(session: Session): Promise<void> {
     await sessionRepository.updateSession(session);
+  }
+
+  async updateSessionMeta(id: string, name: string): Promise<void> {
+    await sessionRepository.updateSessionMeta(id, name);
+  }
+
+  async updateSessionCommune(id: string, commune: string): Promise<void> {
+    await sessionRepository.updateSessionCommune(id, commune);
   }
 
   async getSessions(): Promise<Session[]> {
@@ -181,21 +183,6 @@ class SessionService {
         duration: data.duration,
         lockedAt,
       };
-
-      // PHASE 4 : Use real-time buffer instead of re-generating
-      let coverageCells = closed.coverageCells;
-
-      // Fallback: if buffer is empty, generate from full trajectory
-      if (!coverageCells || coverageCells.length === 0) {
-        coverageCells = await generateCoverageFromTrajectory({
-          sessionId,
-          gpsPoints: closed.gpsTrace,
-          cellSizeMeters: 1,
-        });
-      }
-
-      // Persist final cells
-      await persistCoverageCells(null, coverageCells);
 
       closed.hash = await sha256(this.buildCanonical(closed));
       await sessionRepository.updateSessionLock(

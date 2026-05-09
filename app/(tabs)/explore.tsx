@@ -3,18 +3,12 @@ import ClassifySheet from "@/src/components/ClassifySheet";
 import SessionBottomSheet from "@/src/components/SessionBottomSheet";
 import SessionHud from "@/src/components/SessionHud";
 import SessionMap from "@/src/components/SessionMap";
-import Toast from "@/src/components/Toast";
+import Toast, { useToast } from "@/src/components/Toast";
+import { GpsIndicator } from "@/src/components/GpsIndicator";
 import { COLORS } from "@/src/constants/colors";
-import type { CoverageCellEntity } from "@/src/data/gridEntities";
-import { sessionRepository } from "@/src/data/sessionRepository";
 import { useGps } from "@/src/hooks/useGps";
 import { useSession } from "@/src/hooks/useSession";
 import { useTimer } from "@/src/hooks/useTimer";
-import {
-  deduplicateCells,
-  generateCellsFromPoint,
-  generateCoverageFromTrajectory,
-} from "@/src/services/GridService";
 import {
   GpsPoint,
   MarkedEvent,
@@ -46,9 +40,6 @@ function formatDuration(seconds: number): string {
 function makeId() {
   return Math.random().toString(36).slice(2, 11);
 }
-
-const GRID_DISPLAY_LIMIT = 100;
-const GRID_PREVIEW_POINT_LIMIT = 100;
 
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
@@ -83,76 +74,20 @@ export default function ExploreScreen() {
   const [selectedEvent, setSelectedEvent] = useState<MarkedEvent | null>(null);
   const [classifyVisible, setClassifyVisible] = useState(false);
   const [initialDistance, setInitialDistance] = useState(0);
+  const [startGpsAccuracy, setStartGpsAccuracy] = useState<number | null>(null);
   const [redFilter, setRedFilter] = useState(false);
-  const [coverageCells, setCoverageCells] = useState<CoverageCellEntity[]>([]);
-  const [showGrid, setShowGrid] = useState(true);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
+  const { showToast } = useToast();
 
   const sessionId = session?.id;
-  const sessionCoverageCells = session?.coverageCells;
   const totalDistance = initialDistance + liveDistance;
   const gpsTrace = useMemo(() => session?.gpsTrace ?? [], [session?.gpsTrace]);
   const userLocation = location
     ? { latitude: location.lat, longitude: location.lon }
     : null;
+  const canStartWithGps =
+    startGpsAccuracy !== null && startGpsAccuracy <= 40 && !isRunning;
 
-  // ✅ SINGLE EFFECT: Load grid data (persisted or preview)
-  useEffect(() => {
-    if (!sessionId || !isRunning) return;
-
-    let active = true;
-
-    async function loadGrid() {
-      if (!sessionId) {
-        setCoverageCells([]);
-        return;
-      }
-
-      // PHASE 1 : Display real-time buffer first
-      if (sessionCoverageCells && sessionCoverageCells.length > 0) {
-        if (active) {
-          setCoverageCells(sessionCoverageCells.slice(0, GRID_DISPLAY_LIMIT));
-        }
-        return;
-      }
-
-      try {
-
-        const persisted = await sessionRepository.getCoverageCellsBySession(
-          sessionId,
-          GRID_DISPLAY_LIMIT,
-        );
-
-        if (!active) return;
-
-        if (persisted.length > 0) {
-          setCoverageCells(persisted);
-          return;
-        }
-
-        // PHASE 3: Generate preview from last N GPS points
-        const previewPoints = gpsTrace.slice(-GRID_PREVIEW_POINT_LIMIT);
-        if (previewPoints.length > 0) {
-          const preview = await generateCoverageFromTrajectory({
-            sessionId,
-            gpsPoints: previewPoints,
-          });
-          if (active) {
-            setCoverageCells(preview.slice(0, GRID_DISPLAY_LIMIT));
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to load coverage cells:", err);
-        if (active) setCoverageCells([]);
-      }
-    }
-
-    loadGrid();
-
-    return () => {
-      active = false;
-    };
-  }, [sessionId, sessionCoverageCells, gpsTrace, isRunning]);
 
   // ✅ EFFECT: Update coverage cells when GPS point arrives
   useEffect(() => {
@@ -177,35 +112,7 @@ export default function ExploreScreen() {
       );
       if (alreadyExists) return prev;
 
-      // Add GPS point
-      const updated = { ...prev, gpsTrace: [...prev.gpsTrace, gpsPoint] };
-
-      // ✅ PHASE 4: Real-time grid calculation with throttling
-      try {
-        const now = Date.now();
-        const lastUpdate = updated.lastGridUpdateMs || 0;
-
-        // Check throttle: only update if enough time has passed
-        if (now - lastUpdate > updated.gridUpdateInterval) {
-          // Calculate cells from fresh point only
-          const affectedCells = generateCellsFromPoint(sessionId, gpsPoint, 1);
-
-          // Merge + deduplicate in memory
-          const merged = deduplicateCells([
-            ...updated.coverageCells,
-            ...affectedCells,
-          ]);
-
-          // Limit to 100 cells in memory
-          updated.coverageCells = merged.slice(0, 100);
-          updated.lastGridUpdateMs = now;
-        }
-      } catch (err) {
-        console.warn("Grid realtime calc error:", err);
-        // Continue without blocking GPS trace
-      }
-
-      return updated;
+      return { ...prev, gpsTrace: [...prev.gpsTrace, gpsPoint] };
     });
 
     // Persist to DB asynchronously (non-blocking)
@@ -215,20 +122,40 @@ export default function ExploreScreen() {
   }, [location, sessionId, setSession, isRunning]);
 
   // ✅ Handle start session
-  const handleStart = useCallback(async () => {
+  const startSessionNow = useCallback(async () => {
     try {
       await createSession();
       startTracking();
       startTimer();
       setInitialDistance(0);
       setRedFilter(false);
-      setShowGrid(true);
-      setToast("Session démarrée");
+      showToast("Session demarree ✓", "success");
     } catch (err) {
       console.error("Failed to start session:", err);
-      setToast("Erreur démarrage session");
+      showToast("Erreur demarrage session", "error");
     }
-  }, [createSession, startTracking, startTimer]);
+  }, [createSession, showToast, startTracking, startTimer]);
+
+  const handleStart = useCallback(() => {
+    if (!canStartWithGps) {
+      showToast("Signal GPS insuffisant", "error");
+      return;
+    }
+
+    if (startGpsAccuracy !== null && startGpsAccuracy > 25) {
+      Alert.alert(
+        "Precision GPS faible",
+        `Precision GPS faible (+/-${Math.round(startGpsAccuracy)}m). Continuer ?`,
+        [
+          { text: "Attendre meilleur signal", style: "cancel" },
+          { text: "Demarrer quand meme", onPress: startSessionNow },
+        ],
+      );
+      return;
+    }
+
+    void startSessionNow();
+  }, [canStartWithGps, showToast, startGpsAccuracy, startSessionNow]);
 
   // ✅ Handle pause
   const handlePause = useCallback(() => {
@@ -404,26 +331,20 @@ export default function ExploreScreen() {
               </Text>
             </View>
 
-            <TouchableOpacity style={styles.startButton} onPress={handleStart}>
+            <GpsIndicator onAccuracyChange={setStartGpsAccuracy} />
+
+            <TouchableOpacity
+              style={[
+                styles.startButton,
+                !canStartWithGps && styles.startButtonDisabled,
+              ]}
+              onPress={handleStart}
+              disabled={!canStartWithGps}
+            >
               <Ionicons name="location" size={25} color={COLORS.accent} />
               <Text style={styles.startText}>DÉMARRER UNE SESSION</Text>
               <Ionicons name="chevron-forward" size={22} color={COLORS.accent} />
             </TouchableOpacity>
-
-            <View style={styles.gpsStatusCard}>
-              <View style={styles.gpsStatusIcon}>
-                <Ionicons name="radio-outline" size={28} color={COLORS.primary} />
-              </View>
-              <View style={styles.gpsStatusText}>
-                <Text style={styles.gpsStatusTitle}>
-                  Signal GPS en cours d’acquisition…
-                </Text>
-                <Text style={styles.gpsStatusSubtitle}>
-                  Veuillez patienter quelques instants
-                </Text>
-              </View>
-              <View style={styles.gpsStatusDot} />
-            </View>
           </ScrollView>
         </ImageBackground>
       </View>
@@ -451,8 +372,6 @@ export default function ExploreScreen() {
           gpsTrace={gpsTrace}
           events={session.events ?? []}
           userLocation={userLocation}
-          coverageCells={coverageCells}
-          showGrid={showGrid}
           onEventPress={openClassify}
         />
       </View>
@@ -476,20 +395,6 @@ export default function ExploreScreen() {
         <Ionicons name="filter" size={20} color={COLORS.accent} />
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.gridToggleButton,
-          { top: 160 },
-          showGrid && styles.gridToggleButtonActive,
-        ]}
-        onPress={() => setShowGrid(!showGrid)}
-      >
-        <Ionicons
-          name="grid"
-          size={20}
-          color={showGrid ? "white" : COLORS.accent}
-        />
-      </TouchableOpacity>
 
       <TouchableOpacity
         style={[
@@ -751,6 +656,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.36,
     shadowRadius: 18,
   },
+  startButtonDisabled: {
+    opacity: 0.42,
+  },
   startText: {
     flex: 1,
     color: COLORS.accent,
@@ -758,48 +666,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 0.8,
     textAlign: "center",
-  },
-  gpsStatusCard: {
-    width: "100%",
-    minHeight: 74,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(82, 224, 79, 0.18)",
-    backgroundColor: "rgba(5, 12, 7, 0.92)",
-  },
-  gpsStatusIcon: {
-    width: 56,
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: "rgba(82, 224, 79, 0.08)",
-  },
-  gpsStatusText: {
-    flex: 1,
-  },
-  gpsStatusTitle: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  gpsStatusSubtitle: {
-    color: COLORS.textTertiary,
-    fontSize: 12,
-    fontWeight: "600",
-    marginTop: 4,
-  },
-  gpsStatusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.glowGreen,
   },
   controls: {
     flexDirection: "row",
@@ -836,21 +702,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.glassStrong,
   },
   redFilterButtonActive: {
-    backgroundColor: COLORS.accent,
-  },
-  gridToggleButton: {
-    position: "absolute",
-    right: 14,
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    backgroundColor: COLORS.glassStrong,
-  },
-  gridToggleButtonActive: {
     backgroundColor: COLORS.accent,
   },
   collapseButton: {

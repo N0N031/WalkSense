@@ -1,12 +1,14 @@
-import * as Location from "expo-location";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
+import * as Location from "expo-location";
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import GlobalMap, { SessionTrace } from "@/src/components/GlobalMap";
+import { SessionDrawer } from "@/src/components/SessionDrawer";
 import { COLORS } from "@/src/constants/colors";
-import { sessionService, Session } from "@/src/services/sessionService";
+import { Session, sessionService } from "@/src/services/sessionService";
 import { formatDistanceMeters } from "@/src/utils/format";
 
 const TRACE_COLORS = [
@@ -15,6 +17,9 @@ const TRACE_COLORS = [
   COLORS.info,
   COLORS.warning,
   COLORS.markerFind,
+  "#A78BFA",
+  "#22D3EE",
+  "#FB7185",
 ];
 
 async function loadUserLocation(): Promise<{
@@ -38,6 +43,8 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [visibleSessionIds, setVisibleSessionIds] = useState<string[] | null>(null);
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -56,6 +63,9 @@ export default function MapScreen() {
           ]);
           if (active) {
             setSessions(data);
+            setVisibleSessionIds((current) =>
+              current === null ? data.map((session) => session.id) : current,
+            );
             setUserLocation(position);
           }
         } catch (error) {
@@ -75,14 +85,19 @@ export default function MapScreen() {
 
   const traces = useMemo<SessionTrace[]>(
     () =>
-      sessions.map((session, index) => ({
-        sessionId: session.id,
-        points: session.gpsTrace,
-        events: session.events,
-        color: TRACE_COLORS[index % TRACE_COLORS.length],
-        active: session.status === "active" || session.status === "running",
-      })),
-    [sessions],
+      sessions
+        .filter(
+          (session) =>
+            visibleSessionIds === null || visibleSessionIds.includes(session.id),
+        )
+        .map((session, index) => ({
+          sessionId: session.id,
+          points: session.gpsTrace,
+          events: session.events,
+          color: TRACE_COLORS[index % TRACE_COLORS.length],
+          active: session.status === "active" || session.status === "running",
+        })),
+    [sessions, visibleSessionIds],
   );
 
   const totalDistance = sessions.reduce(
@@ -114,11 +129,30 @@ export default function MapScreen() {
         <View style={styles.headerCopy}>
           <Text style={styles.title}>Carte</Text>
           <Text style={styles.subtitle}>
-            {sessions.length} sessions · {totalEvents} marqueurs
+            {sessions.length} sessions ·{" "}
+            {totalEvents === 0
+              ? "Aucun evenement"
+              : `${totalEvents} marqueur${totalEvents > 1 ? "s" : ""}`}
           </Text>
         </View>
         <Text style={styles.distance}>{formatDistanceMeters(totalDistance)}</Text>
       </View>
+
+      <TouchableOpacity
+        style={[
+          styles.drawerButton,
+          { bottom: Math.max(insets.bottom, 8) + 106 },
+        ]}
+        onPress={() => setDrawerOpen(true)}
+      >
+        <Ionicons name="list" size={22} color={COLORS.background} />
+      </TouchableOpacity>
+
+      <SessionDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onSessionsToggle={setVisibleSessionIds}
+      />
     </View>
   );
 }
@@ -136,13 +170,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 18,
-    backgroundColor: COLORS.glassStrong,
     borderWidth: 1,
     borderColor: COLORS.border,
-    gap: 12,
+    backgroundColor: COLORS.glassStrong,
   },
   title: {
     color: COLORS.text,
@@ -174,5 +208,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(15, 15, 15, 0.3)",
+  },
+  drawerButton: {
+    position: "absolute",
+    right: 22,
+    width: 50,
+    height: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.accent,
   },
 });

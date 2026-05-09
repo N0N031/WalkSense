@@ -1,8 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SQLite from "expo-sqlite";
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
-const DISTANCE_MIGRATION_FLAG = "walksense_distance_km_to_meters_v1";
+const DB_VERSION = 2;
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
@@ -30,7 +29,9 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
       status TEXT NOT NULL,
       metadata TEXT NOT NULL DEFAULT '{}',
       hash TEXT,
-      lockedAt INTEGER
+      lockedAt INTEGER,
+      name TEXT,
+      commune TEXT
     );
 
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
@@ -79,24 +80,9 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_gps_session ON gps_points(session_id, timestamp);
 
-    CREATE TABLE IF NOT EXISTS coverage_cells (
-      cellId TEXT PRIMARY KEY NOT NULL,
-      sessionId TEXT NOT NULL,
-      centerLat REAL NOT NULL,
-      centerLon REAL NOT NULL,
-      cellSizeMeter INTEGER NOT NULL,
-      radiusUsedMeters REAL NOT NULL,
-      confidenceLevel TEXT NOT NULL,
-      confidenceSource TEXT NOT NULL,
-      timestamp INTEGER NOT NULL,
-      FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_coverage_session ON coverage_cells(sessionId);
-    CREATE INDEX IF NOT EXISTS idx_coverage_confidence
-      ON coverage_cells(sessionId, confidenceLevel);
   `);
 
+  await ensureSessionMetaColumns(db);
   await ensureGpsPointGridColumns(db);
 
   if (hadSnakeCaseSchema) {
@@ -134,6 +120,29 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
       DROP TABLE IF EXISTS gps_points_legacy_snake;
       DROP TABLE IF EXISTS sessions_legacy_snake;
     `);
+  }
+
+  await db.execAsync(`PRAGMA user_version = ${DB_VERSION};`);
+}
+
+async function ensureSessionMetaColumns(
+  db: SQLite.SQLiteDatabase,
+): Promise<void> {
+  const columns = await db.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(sessions)",
+  );
+  const names = new Set(columns.map((column) => column.name));
+
+  const migrations: string[] = [];
+  if (!names.has("name")) {
+    migrations.push("ALTER TABLE sessions ADD COLUMN name TEXT");
+  }
+  if (!names.has("commune")) {
+    migrations.push("ALTER TABLE sessions ADD COLUMN commune TEXT");
+  }
+
+  for (const statement of migrations) {
+    await db.execAsync(statement);
   }
 }
 
@@ -203,11 +212,3 @@ async function migrateSnakeCaseSchemaIfNeeded(
   return true;
 }
 
-export async function migrateDistancesKmToMetersIfNeeded(): Promise<void> {
-  const done = await AsyncStorage.getItem(DISTANCE_MIGRATION_FLAG);
-  if (done === "1") return;
-
-  const db = await getDb();
-  await db.runAsync("UPDATE sessions SET distance = distance * 1000");
-  await AsyncStorage.setItem(DISTANCE_MIGRATION_FLAG, "1");
-}

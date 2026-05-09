@@ -21,7 +21,11 @@ export default function SessionBottomSheet({
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>MARQUEURS</Text>
-          <Text style={styles.subtitle}>{events.length} evenement</Text>
+          <Text style={styles.subtitle}>
+            {events.length === 0
+              ? "Aucun evenement"
+              : `${events.length} evenement${events.length > 1 ? "s" : ""}`}
+          </Text>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={onAddMarker}>
           <Ionicons name="add" size={22} color="white" />

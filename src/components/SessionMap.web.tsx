@@ -1,7 +1,7 @@
 import { COLORS } from "@/src/constants/colors";
-import type { CoverageCellEntity } from "@/src/data/gridEntities";
+import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 export interface SessionMapProps {
@@ -10,16 +10,14 @@ export interface SessionMapProps {
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
-  coverageCells?: CoverageCellEntity[];
-  showGrid?: boolean;
 }
 
 export default function SessionMap({
   events,
   userLocation,
-  coverageCells = [],
-  showGrid = true,
 }: SessionMapProps) {
+  const [mapType, setMapType] = useState<MapType>("google");
+
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>🗺️</Text>
@@ -34,9 +32,9 @@ export default function SessionMap({
       {events.length > 0 && (
         <Text style={styles.count}>{events.length} marqueur(s)</Text>
       )}
-      {showGrid && coverageCells.length > 0 ? (
-        <Text style={styles.count}>{coverageCells.length} cellule(s)</Text>
-      ) : null}
+      <View style={styles.toggle}>
+        <MapTypeToggle currentType={mapType} onChange={setMapType} />
+      </View>
     </View>
   );
 }
@@ -69,5 +67,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textTertiary,
     marginTop: 4,
+  },
+  toggle: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    bottom: 12,
   },
 });

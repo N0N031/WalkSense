@@ -1,15 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/src/constants/colors";
-import type { CoverageCellEntity } from "@/src/data/gridEntities";
+import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
-import GridOverlay from "@/src/components/GridOverlay";
 
 const TILES = {
-  street: "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-  satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  osm: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  ign: "https://wxs.ign.fr/essentiels/geoportail/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
 };
 
 export interface SessionMapProps {
@@ -18,8 +17,6 @@ export interface SessionMapProps {
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
-  coverageCells?: CoverageCellEntity[];
-  showGrid?: boolean;
 }
 
 export default function SessionMap({
@@ -28,10 +25,8 @@ export default function SessionMap({
   events,
   onEventPress,
   historicalTraces = [],
-  coverageCells = [],
-  showGrid = true,
 }: SessionMapProps) {
-  const [satellite, setSatellite] = useState(true);
+  const [mapType, setMapType] = useState<MapType>("google");
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
 
@@ -44,7 +39,7 @@ export default function SessionMap({
 
   const polyline = useMemo(
     () => gpsTrace.map((p) => ({ latitude: p.lat, longitude: p.lon })),
-    [gpsTrace]
+    [gpsTrace],
   );
 
   const centerOnUser = useCallback(() => {
@@ -66,18 +61,26 @@ export default function SessionMap({
       <RNMapView
         ref={mapRef}
         style={{ flex: 1 }}
-        mapType="none"
+        mapType={
+          mapType === "satellite"
+            ? "satellite"
+            : mapType === "google"
+              ? "standard"
+              : "none"
+        }
         initialRegion={region}
         maxZoomLevel={19}
         showsUserLocation={false}
         showsMyLocationButton={false}
         moveOnMarkerPress={false}
       >
-        <UrlTile
-          urlTemplate={satellite ? TILES.satellite : TILES.street}
-          maximumZ={19}
-          tileSize={256}
-        />
+        {mapType === "osm" || mapType === "ign" ? (
+          <UrlTile
+            urlTemplate={mapType === "ign" ? TILES.ign : TILES.osm}
+            maximumZ={19}
+            tileSize={256}
+          />
+        ) : null}
 
         {historicalTraces.map((trace, idx) => {
           const coords = trace.map((p) => ({ latitude: p.lat, longitude: p.lon }));
@@ -94,13 +97,11 @@ export default function SessionMap({
         {polyline.length > 1 && (
           <Polyline
             coordinates={polyline}
-            strokeColor={satellite ? "#00ccff" : COLORS.gpsTrace}
+            strokeColor={mapType === "satellite" ? "#00ccff" : COLORS.gpsTrace}
             strokeWidth={3}
             zIndex={10}
           />
         )}
-
-        <GridOverlay cells={coverageCells} isVisible={showGrid} />
 
         {userLocation && (
           <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>
@@ -117,8 +118,8 @@ export default function SessionMap({
             event.type === "auto"
               ? COLORS.markerAuto
               : event.type === "find"
-              ? COLORS.markerFind
-              : COLORS.markerManual;
+                ? COLORS.markerFind
+                : COLORS.markerManual;
           return (
             <Marker
               key={event.id}
@@ -134,7 +135,6 @@ export default function SessionMap({
       </RNMapView>
       <View pointerEvents="none" style={styles.mapTint} />
 
-      {/* Centrage sur position */}
       <TouchableOpacity
         style={[styles.centerButton, !userLocation && styles.centerButtonDisabled]}
         onPress={centerOnUser}
@@ -146,18 +146,16 @@ export default function SessionMap({
         />
       </TouchableOpacity>
 
-      {/* Toggle satellite / street */}
-      <TouchableOpacity
-        style={[styles.layerToggle, satellite && styles.layerToggleActive]}
-        onPress={() => setSatellite((s) => !s)}
-      >
-        <Text style={[styles.layerToggleText, satellite && styles.layerToggleTextActive]}>
-          {satellite ? "🛰 Satellite" : "🗺 Carte"}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.mapTypeToggle}>
+        <MapTypeToggle currentType={mapType} onChange={setMapType} />
+      </View>
 
-      <Text style={[styles.attribution, satellite && styles.attributionSat]}>
-        {satellite ? "© Esri, Maxar, Earthstar Geographics" : "© OpenStreetMap contributors"}
+      <Text style={styles.attribution}>
+        {mapType === "satellite"
+          ? "© Google"
+          : mapType === "ign"
+            ? "© IGN Geoportail"
+            : "© OpenStreetMap contributors"}
       </Text>
     </View>
   );
@@ -171,7 +169,7 @@ const styles = StyleSheet.create({
   },
   mapTint: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 32, 12, 0.22)",
+    backgroundColor: "rgba(0, 32, 12, 0.16)",
   },
   userDot: {
     width: 16,
@@ -180,9 +178,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.info,
     borderWidth: 2,
     borderColor: "white",
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.8,
-    shadowRadius: 12,
   },
   marker: {
     width: 32,
@@ -198,7 +193,7 @@ const styles = StyleSheet.create({
   },
   centerButton: {
     position: "absolute",
-    bottom: 16,
+    bottom: 20,
     left: 10,
     width: 40,
     height: 40,
@@ -208,49 +203,21 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
   },
   centerButtonDisabled: {
     opacity: 0.4,
   },
-  layerToggle: {
+  mapTypeToggle: {
     position: "absolute",
-    top: 10,
+    left: 56,
     right: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: COLORS.glassStrong,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.glowGreen,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-  },
-  layerToggleActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  layerToggleText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.text,
-  },
-  layerToggleTextActive: {
-    color: "white",
+    bottom: 14,
   },
   attribution: {
     position: "absolute",
-    bottom: 4,
-    right: 8,
+    bottom: 2,
+    right: 10,
     fontSize: 9,
-    color: COLORS.textTertiary,
-  },
-  attributionSat: {
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(255,255,255,0.72)",
   },
 });

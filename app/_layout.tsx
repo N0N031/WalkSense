@@ -5,9 +5,9 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
-import { migrateDistancesKmToMetersIfNeeded } from '@/src/data/db';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { migrateVaultToSqliteIfNeeded } from '@/src/data/migrationFromVault';
+import { ToastProvider } from '@/src/components/Toast';
 import { authService, migrateAuthToSecureStoreIfNeeded } from '@/src/services/authService';
 
 export const unstable_settings = {
@@ -22,7 +22,6 @@ export default function RootLayout() {
     let active = true;
     async function routeGate() {
       await migrateVaultToSqliteIfNeeded();
-      await migrateDistancesKmToMetersIfNeeded();
       await migrateAuthToSecureStoreIfNeeded();
       if (!active) return;
 
@@ -48,13 +47,15 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="light" />
+        <ToastProvider>
+          <Stack>
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="light" />
+        </ToastProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

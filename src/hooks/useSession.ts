@@ -4,6 +4,8 @@ import {
   Session,
   sessionService,
 } from "@/src/services/sessionService";
+import { getCommune } from "@/src/services/geocodingService";
+import * as Location from "expo-location";
 import { useCallback, useMemo, useState } from "react";
 
 export function useSession() {
@@ -16,12 +18,34 @@ export function useSession() {
     [session?.status],
   );
 
-  const createSession = useCallback(async () => {
+  const hydrateSessionCommune = useCallback(async (sessionId: string) => {
+    try {
+      const lastLocation = await Location.getLastKnownPositionAsync();
+      if (!lastLocation) return;
+
+      const commune = await getCommune(
+        lastLocation.coords.latitude,
+        lastLocation.coords.longitude,
+      );
+      await sessionService.updateSessionCommune(sessionId, commune);
+      setSession((prev) =>
+        prev?.id === sessionId ? { ...prev, commune } : prev,
+      );
+    } catch (err) {
+      console.warn("Session commune geocoding skipped:", err);
+    }
+  }, []);
+
+  const createSession = useCallback(async (input?: {
+    name?: string;
+    commune?: string;
+  }) => {
     try {
       setIsLoading(true);
       setError(null);
-      const newSession = await sessionService.createSession();
+      const newSession = await sessionService.createSession(input);
       setSession(newSession);
+      void hydrateSessionCommune(newSession.id);
       return newSession;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur creation session");
@@ -29,7 +53,7 @@ export function useSession() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [hydrateSessionCommune]);
 
   const loadSession = useCallback(async (sessionId: string) => {
     try {

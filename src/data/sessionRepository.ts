@@ -1,6 +1,5 @@
 import { getDb } from "@/src/data/db";
 import {
-  type CoverageCellEntity,
   gpsPointEntityToPoint,
   gpsPointToEntity,
   type ConfidenceLevel,
@@ -13,6 +12,8 @@ import type {
 
 type SessionRow = {
   id: string;
+  name: string | null;
+  commune: string | null;
   createdAt: number;
   startTime: number;
   endTime: number | null;
@@ -184,53 +185,17 @@ class SessionRepository {
     );
   }
 
-  async upsertCoverageCells(cells: CoverageCellEntity[]): Promise<void> {
-    if (cells.length === 0) return;
-
+  async updateSessionMeta(id: string, name: string): Promise<void> {
     const db = await getDb();
-    await db.withTransactionAsync(async () => {
-      for (const cell of cells) {
-        await db.runAsync(
-          `INSERT INTO coverage_cells (
-            cellId, sessionId, centerLat, centerLon, cellSizeMeter,
-            radiusUsedMeters, confidenceLevel, confidenceSource, timestamp
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(cellId) DO UPDATE SET
-            sessionId = excluded.sessionId,
-            centerLat = excluded.centerLat,
-            centerLon = excluded.centerLon,
-            cellSizeMeter = excluded.cellSizeMeter,
-            radiusUsedMeters = excluded.radiusUsedMeters,
-            confidenceLevel = excluded.confidenceLevel,
-            confidenceSource = excluded.confidenceSource,
-            timestamp = excluded.timestamp`,
-          cell.cellId,
-          cell.sessionId,
-          cell.centerLat,
-          cell.centerLon,
-          cell.cellSizeMeter,
-          cell.radiusUsedMeters,
-          cell.confidenceLevel,
-          cell.confidenceSource,
-          cell.timestamp,
-        );
-      }
-    });
+    await db.runAsync("UPDATE sessions SET name = ? WHERE id = ?", name, id);
   }
 
-  async getCoverageCellsBySession(
-    sessionId: string,
-    limit = 100,
-  ): Promise<CoverageCellEntity[]> {
+  async updateSessionCommune(id: string, commune: string): Promise<void> {
     const db = await getDb();
-    return await db.getAllAsync<CoverageCellEntity>(
-      `SELECT *
-       FROM coverage_cells
-       WHERE sessionId = ?
-       ORDER BY timestamp DESC
-       LIMIT ?`,
-      sessionId,
-      limit,
+    await db.runAsync(
+      "UPDATE sessions SET commune = ? WHERE id = ?",
+      commune,
+      id,
     );
   }
 
@@ -309,9 +274,11 @@ class SessionRepository {
     const db = await getDb();
     await db.runAsync(
       `INSERT INTO sessions (
-        id, createdAt, startTime, endTime, duration, distance, status, metadata, hash, lockedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, name, commune, createdAt, startTime, endTime, duration, distance, status, metadata, hash, lockedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
+        name = excluded.name,
+        commune = excluded.commune,
         createdAt = excluded.createdAt,
         startTime = excluded.startTime,
         endTime = excluded.endTime,
@@ -322,6 +289,8 @@ class SessionRepository {
         hash = excluded.hash,
         lockedAt = excluded.lockedAt`,
       session.id,
+      session.name ?? null,
+      session.commune ?? null,
       session.createdAt,
       session.startTime,
       session.endTime ?? null,
@@ -414,6 +383,8 @@ class SessionRepository {
   ): Session {
     return {
       id: row.id,
+      name: row.name ?? undefined,
+      commune: row.commune ?? undefined,
       createdAt: row.createdAt,
       startTime: row.startTime,
       endTime: row.endTime ?? undefined,
@@ -425,9 +396,6 @@ class SessionRepository {
       metadata: parseJson(row.metadata, { privateMode: false }),
       hash: row.hash ?? undefined,
       lockedAt: row.lockedAt ?? undefined,
-      coverageCells: [],
-      lastGridUpdateMs: 0,
-      gridUpdateInterval: 500,
     };
   }
 
