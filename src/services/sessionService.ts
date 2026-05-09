@@ -1,11 +1,6 @@
 import * as Crypto from "expo-crypto";
 
-import type { CoverageCellEntity } from "@/src/data/gridEntities";
 import { sessionRepository } from "@/src/data/sessionRepository";
-import {
-    generateCoverageFromTrajectory,
-    persistCoverageCells,
-} from "@/src/services/GridService";
 import { sha256 } from "@/src/utils/sha256";
 
 export interface GpsPoint {
@@ -60,10 +55,6 @@ export interface Session {
   };
   hash?: string;
   lockedAt?: number;
-  // PHASE 4 : Real-time grid buffer
-  coverageCells: CoverageCellEntity[];
-  lastGridUpdateMs: number;
-  gridUpdateInterval: number; // ms min between grid updates (throttle)
 }
 
 class SessionService {
@@ -83,10 +74,6 @@ class SessionService {
       metadata: {
         privateMode: false,
       },
-      // PHASE 4 : Initialize real-time grid buffer
-      coverageCells: [],
-      lastGridUpdateMs: 0,
-      gridUpdateInterval: 500, // max 2 updates/sec
     };
 
     await sessionRepository.insertSession(session);
@@ -181,21 +168,6 @@ class SessionService {
         duration: data.duration,
         lockedAt,
       };
-
-      // PHASE 4 : Use real-time buffer instead of re-generating
-      let coverageCells = closed.coverageCells;
-
-      // Fallback: if buffer is empty, generate from full trajectory
-      if (!coverageCells || coverageCells.length === 0) {
-        coverageCells = await generateCoverageFromTrajectory({
-          sessionId,
-          gpsPoints: closed.gpsTrace,
-          cellSizeMeters: 1,
-        });
-      }
-
-      // Persist final cells
-      await persistCoverageCells(null, coverageCells);
 
       closed.hash = await sha256(this.buildCanonical(closed));
       await sessionRepository.updateSessionLock(

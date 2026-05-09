@@ -79,22 +79,6 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_gps_session ON gps_points(session_id, timestamp);
 
-    CREATE TABLE IF NOT EXISTS coverage_cells (
-      cellId TEXT PRIMARY KEY NOT NULL,
-      sessionId TEXT NOT NULL,
-      centerLat REAL NOT NULL,
-      centerLon REAL NOT NULL,
-      cellSizeMeter INTEGER NOT NULL,
-      radiusUsedMeters REAL NOT NULL,
-      confidenceLevel TEXT NOT NULL,
-      confidenceSource TEXT NOT NULL,
-      timestamp INTEGER NOT NULL,
-      FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_coverage_session ON coverage_cells(sessionId);
-    CREATE INDEX IF NOT EXISTS idx_coverage_confidence
-      ON coverage_cells(sessionId, confidenceLevel);
   `);
 
   await ensureGpsPointGridColumns(db);
