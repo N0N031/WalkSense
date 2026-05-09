@@ -376,7 +376,6 @@ export default function ExploreScreen() {
         <PremiumHeader style={[styles.brandRow, { flex: 1 }]} />
         <View style={styles.mapModeButton}>
           <Ionicons name="map-outline" size={22} color={COLORS.accent} />
-          <Text style={styles.mapModeText}>Carte</Text>
         </View>
       </View>
       <View style={panelsCollapsed ? styles.mapAreaExpanded : styles.mapArea}>
@@ -563,20 +562,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   mapModeButton: {
-    height: 40,
-    flexDirection: "row",
+    width: 42,
+    height: 42,
     alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    justifyContent: "center",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: "rgba(212, 175, 55, 0.28)",
     backgroundColor: COLORS.glassStrong,
-  },
-  mapModeText: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: "800",
   },
   mapArea: {
     flex: 3,
