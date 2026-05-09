@@ -6,21 +6,21 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 
-const IGN = (layer: string, fmt = "image/png") =>
-  `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
+const IGN = (layer: string, fmt = "image/png", tms = "PM") =>
+  `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=${tms}&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
 
 const TILES: Record<string, string> = {
   osm: "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
   ign: IGN("GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2"),
   "ign-ortho": IGN("ORTHOIMAGERY.ORTHOPHOTOS", "image/jpeg"),
-  "ign-cassini": IGN("GEOGRAPHICALGRIDSYSTEMS.CASSINI"),
-  "ign-etatmajor": IGN("GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40"),
-  "ign-cadastre": IGN("CADASTRALPARCELS.PARCELLAIRE_EXPRESS"),
+  "ign-cassini": IGN("AN-IGNF_GEOGRAPHICALGRIDSYSTEMS.CASSINI", "image/png", "PM_0_14"),
+  "ign-etatmajor": IGN("GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40", "image/png", "PM_6_15"),
+  "ign-cadastre": IGN("CADASTRALPARCELS.PARCELLAIRE_EXPRESS", "image/png", "PM_0_19"),
 };
 
 const TILE_MAX_ZOOM: Record<string, number> = {
   "ign-ortho": 21,
-  "ign-cassini": 15,
+  "ign-cassini": 14,
   "ign-etatmajor": 15,
 };
 
