@@ -308,9 +308,23 @@ export default function ExploreScreen() {
           >
             <View style={styles.emptyBrand}>
               <BrandLogo compact />
-              <View>
-                <Text style={styles.emptyBrandTitle}>WalkSense</Text>
-                <Text style={styles.emptyBrandSubtitle}>TERRAIN TRACKING</Text>
+              <View style={styles.emptyBrandCopy}>
+                <Text
+                  style={styles.emptyBrandTitle}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.78}
+                >
+                  WalkSense
+                </Text>
+                <Text
+                  style={styles.emptyBrandSubtitle}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                >
+                  TERRAIN TRACKING
+                </Text>
               </View>
             </View>
 
@@ -323,10 +337,20 @@ export default function ExploreScreen() {
             <BrandLogo size="large" />
 
             <View style={styles.emptyCopyBlock}>
-              <Text style={styles.emptyLead}>
+              <Text
+                style={styles.emptyLead}
+                numberOfLines={3}
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+              >
                 Tracez vos prospections terrain avec précision.
               </Text>
-              <Text style={styles.emptySubcopy}>
+              <Text
+                style={styles.emptySubcopy}
+                numberOfLines={3}
+                adjustsFontSizeToFit
+                minimumFontScale={0.82}
+              >
                 Enregistrez chaque découverte et restez organisé.
               </Text>
             </View>
@@ -342,7 +366,14 @@ export default function ExploreScreen() {
               disabled={!canStartWithGps}
             >
               <Ionicons name="location" size={25} color={COLORS.accent} />
-              <Text style={styles.startText}>DÉMARRER UNE SESSION</Text>
+              <Text
+                style={styles.startText}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+              >
+                DÉMARRER UNE SESSION
+              </Text>
               <Ionicons name="chevron-forward" size={22} color={COLORS.accent} />
             </TouchableOpacity>
           </ScrollView>
@@ -576,26 +607,34 @@ const styles = StyleSheet.create({
   },
   emptyContent: {
     flexGrow: 1,
+    width: "100%",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    gap: 14,
+    paddingHorizontal: 20,
+    gap: 12,
   },
   emptyBrand: {
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    justifyContent: "center",
+    gap: 12,
+    paddingHorizontal: 8,
+  },
+  emptyBrandCopy: {
+    flexShrink: 1,
+    maxWidth: 260,
   },
   emptyBrandTitle: {
     color: COLORS.accent,
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: "900",
   },
   emptyBrandSubtitle: {
     color: COLORS.textSecondary,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 5,
+    letterSpacing: 4,
     marginTop: 4,
   },
   emptyDivider: {
@@ -619,35 +658,41 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
   },
   emptyCopyBlock: {
+    width: "100%",
     alignItems: "center",
-    gap: 14,
+    gap: 10,
+    paddingHorizontal: 8,
   },
   emptyLead: {
     color: COLORS.text,
-    fontSize: 21,
-    lineHeight: 29,
+    fontSize: 19,
+    lineHeight: 26,
     fontWeight: "900",
     textAlign: "center",
-    width: "88%",
+    width: "100%",
+    maxWidth: 350,
+    flexShrink: 1,
   },
   emptySubcopy: {
     color: COLORS.textSecondary,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
     fontWeight: "600",
     textAlign: "center",
-    width: "88%",
+    width: "100%",
+    maxWidth: 330,
+    flexShrink: 1,
   },
   startButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: 10,
     alignSelf: "stretch",
-    minHeight: 62,
-    marginHorizontal: 32,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    minHeight: 60,
+    marginHorizontal: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     borderRadius: 12,
     backgroundColor: "rgba(26, 58, 26, 0.82)",
     borderWidth: 1,
@@ -662,10 +707,12 @@ const styles = StyleSheet.create({
   startText: {
     flex: 1,
     color: COLORS.accent,
-    fontSize: 20,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: "900",
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
     textAlign: "center",
+    flexShrink: 1,
   },
   controls: {
     flexDirection: "row",

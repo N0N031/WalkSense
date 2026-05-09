@@ -1,14 +1,14 @@
-import { Ionicons } from "@expo/vector-icons";
+import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
 import { COLORS } from "@/src/constants/colors";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 
 const TILES = {
-  street: "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
-  satellite:
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+  osm: "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  ign: "https://wxs.ign.fr/geoportail/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
 };
 
 export interface SessionTrace {
@@ -32,21 +32,30 @@ export default function GlobalMap({
   controlsTopOffset = 10,
   controlsBottomOffset = 16,
 }: GlobalMapProps) {
-  const [satellite, setSatellite] = useState(true);
+  const [mapType, setMapType] = useState<MapType>("satellite");
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
 
+  const tileUrlTemplate =
+    mapType === "ign" ? TILES.ign : mapType === "osm" ? TILES.osm : undefined;
+
+  const nativeMapType =
+    mapType === "satellite"
+      ? "satellite"
+      : mapType === "google"
+        ? "standard"
+        : "none";
+
   const allPoints = traces.flatMap((t) => t.points);
 
-  const initialRegion =
-    userLocation
-      ? {
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }
-      : allPoints.length > 0
+  const initialRegion = userLocation
+    ? {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      }
+    : allPoints.length > 0
       ? {
           latitude: allPoints[0].lat,
           longitude: allPoints[0].lon,
@@ -61,7 +70,10 @@ export default function GlobalMap({
         };
 
   function fitAll() {
-    const coords = allPoints.map((p) => ({ latitude: p.lat, longitude: p.lon }));
+    const coords = allPoints.map((p) => ({
+      latitude: p.lat,
+      longitude: p.lon,
+    }));
     if (userLocation) coords.push(userLocation);
     if (coords.length === 0) return;
     mapRef.current?.fitToCoordinates(coords, {
@@ -89,7 +101,7 @@ export default function GlobalMap({
       <RNMapView
         ref={mapRef}
         style={{ flex: 1 }}
-        mapType="none"
+        mapType={nativeMapType as any}
         initialRegion={initialRegion}
         maxZoomLevel={19}
         showsUserLocation={false}
@@ -99,11 +111,14 @@ export default function GlobalMap({
           else fitAll();
         }}
       >
-        <UrlTile
-          urlTemplate={satellite ? TILES.satellite : TILES.street}
-          maximumZ={19}
-          tileSize={256}
-        />
+        {tileUrlTemplate ? (
+          <UrlTile
+            urlTemplate={tileUrlTemplate}
+            maximumZ={19}
+            tileSize={256}
+            flipY={false}
+          />
+        ) : null}
 
         {traces.map((trace) => {
           const polyline = trace.points.map((p) => ({
@@ -140,7 +155,11 @@ export default function GlobalMap({
                   ? COLORS.markerFind
                   : COLORS.markerManual;
             return (
-              <Marker key={event.id} coordinate={coord} anchor={{ x: 0.5, y: 0.5 }}>
+              <Marker
+                key={event.id}
+                coordinate={coord}
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
                 <View style={[styles.eventDot, { backgroundColor: bg }]} />
               </Marker>
             );
@@ -171,21 +190,21 @@ export default function GlobalMap({
         />
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.layerToggle,
-          { top: controlsTopOffset },
-          satellite && styles.layerToggleActive,
-        ]}
-        onPress={() => setSatellite((s) => !s)}
-      >
-        <Text style={[styles.layerText, satellite && styles.layerTextActive]}>
-          {satellite ? "🛰 Satellite" : "🗺 Carte"}
-        </Text>
-      </TouchableOpacity>
+      <View style={[styles.layerToggle, { top: controlsTopOffset }]}>
+        <MapTypeToggle currentType={mapType} onChange={setMapType} />
+      </View>
 
-      <Text style={[styles.attribution, satellite && styles.attributionSat]}>
-        {satellite ? "© Esri, Maxar" : "© OpenStreetMap contributors"}
+      <Text
+        style={[
+          styles.attribution,
+          mapType === "satellite" && styles.attributionSat,
+        ]}
+      >
+        {mapType === "satellite"
+          ? "© Esri, Maxar"
+          : mapType === "ign"
+            ? "© IGN Geoportail"
+            : "© OpenStreetMap contributors"}
       </Text>
     </View>
   );

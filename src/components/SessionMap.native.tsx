@@ -1,14 +1,20 @@
-import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "@/src/constants/colors";
 import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
+import { COLORS } from "@/src/constants/colors";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 
 const TILES = {
-  osm: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-  ign: "https://wxs.ign.fr/essentiels/geoportail/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+  osm: "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  ign: "https://wxs.ign.fr/geoportail/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}",
 };
 
 export interface SessionMapProps {
@@ -29,6 +35,16 @@ export default function SessionMap({
   const [mapType, setMapType] = useState<MapType>("google");
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
+
+  const tileUrlTemplate =
+    mapType === "ign" ? TILES.ign : mapType === "osm" ? TILES.osm : undefined;
+
+  const nativeMapType =
+    mapType === "satellite"
+      ? "satellite"
+      : mapType === "google"
+        ? "standard"
+        : "none";
 
   const region = {
     latitude: userLocation?.latitude ?? 43.6047,
@@ -61,29 +77,28 @@ export default function SessionMap({
       <RNMapView
         ref={mapRef}
         style={{ flex: 1 }}
-        mapType={
-          mapType === "satellite"
-            ? "satellite"
-            : mapType === "google"
-              ? "standard"
-              : "none"
-        }
+        mapType={nativeMapType as any}
         initialRegion={region}
         maxZoomLevel={19}
         showsUserLocation={false}
         showsMyLocationButton={false}
         moveOnMarkerPress={false}
       >
-        {mapType === "osm" || mapType === "ign" ? (
+        {tileUrlTemplate ? (
           <UrlTile
-            urlTemplate={mapType === "ign" ? TILES.ign : TILES.osm}
+            urlTemplate={tileUrlTemplate}
             maximumZ={19}
             tileSize={256}
+            zIndex={1}
+            flipY={false}
           />
         ) : null}
 
         {historicalTraces.map((trace, idx) => {
-          const coords = trace.map((p) => ({ latitude: p.lat, longitude: p.lon }));
+          const coords = trace.map((p) => ({
+            latitude: p.lat,
+            longitude: p.lon,
+          }));
           return coords.length > 1 ? (
             <Polyline
               key={`hist-${idx}`}
@@ -136,7 +151,10 @@ export default function SessionMap({
       <View pointerEvents="none" style={styles.mapTint} />
 
       <TouchableOpacity
-        style={[styles.centerButton, !userLocation && styles.centerButtonDisabled]}
+        style={[
+          styles.centerButton,
+          !userLocation && styles.centerButtonDisabled,
+        ]}
         onPress={centerOnUser}
       >
         <Ionicons
@@ -209,7 +227,7 @@ const styles = StyleSheet.create({
   },
   mapTypeToggle: {
     position: "absolute",
-    left: 56,
+    left: 10,
     right: 10,
     bottom: 14,
   },

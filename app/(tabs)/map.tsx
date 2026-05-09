@@ -1,8 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
-import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    ActivityIndicator,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import GlobalMap, { SessionTrace } from "@/src/components/GlobalMap";
@@ -44,43 +50,42 @@ export default function MapScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [visibleSessionIds, setVisibleSessionIds] = useState<string[] | null>(null);
+  const [visibleSessionIds, setVisibleSessionIds] = useState<string[] | null>(
+    null,
+  );
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
 
+  const loadSessions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [data, position] = await Promise.all([
+        sessionService.getSessions(),
+        loadUserLocation(),
+      ]);
+      setSessions(data);
+      setVisibleSessionIds((current) =>
+        current === null ? data.map((session) => session.id) : current,
+      );
+      setUserLocation(position);
+    } catch (error) {
+      console.error("MapScreen.loadSessions error:", error);
+      setSessions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSessions();
+  }, [loadSessions]);
+
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-
-      async function loadSessions() {
-        setLoading(true);
-        try {
-          const [data, position] = await Promise.all([
-            sessionService.getSessions(),
-            loadUserLocation(),
-          ]);
-          if (active) {
-            setSessions(data);
-            setVisibleSessionIds((current) =>
-              current === null ? data.map((session) => session.id) : current,
-            );
-            setUserLocation(position);
-          }
-        } catch (error) {
-          console.error("MapScreen.loadSessions error:", error);
-          if (active) setSessions([]);
-        } finally {
-          if (active) setLoading(false);
-        }
-      }
-
       loadSessions();
-      return () => {
-        active = false;
-      };
-    }, []),
+    }, [loadSessions]),
   );
 
   const traces = useMemo<SessionTrace[]>(
@@ -88,7 +93,8 @@ export default function MapScreen() {
       sessions
         .filter(
           (session) =>
-            visibleSessionIds === null || visibleSessionIds.includes(session.id),
+            visibleSessionIds === null ||
+            visibleSessionIds.includes(session.id),
         )
         .map((session, index) => ({
           sessionId: session.id,
@@ -135,7 +141,9 @@ export default function MapScreen() {
               : `${totalEvents} marqueur${totalEvents > 1 ? "s" : ""}`}
           </Text>
         </View>
-        <Text style={styles.distance}>{formatDistanceMeters(totalDistance)}</Text>
+        <Text style={styles.distance}>
+          {formatDistanceMeters(totalDistance)}
+        </Text>
       </View>
 
       <TouchableOpacity

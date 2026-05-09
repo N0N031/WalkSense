@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     height: 48,
   },
   largeLogo: {
-    width: 136,
-    height: 136,
+    width: 124,
+    height: 124,
   },
 });

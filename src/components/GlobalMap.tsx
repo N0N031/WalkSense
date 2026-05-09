@@ -25,17 +25,44 @@ export default function GlobalMap({ traces, userLocation }: GlobalMapProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>🗺️</Text>
-      <Text style={styles.label}>{traces.length} session(s)</Text>
-      <Text style={styles.sub}>
-        {totalPoints} points GPS · {totalEvents} marqueurs
-      </Text>
+      {traces.length === 0 ? (
+        <>
+          <Text style={styles.label}>Aucune session enregistrée</Text>
+          <Text style={styles.sub}>
+            Les données de session sont disponibles ici une fois enregistrées.
+          </Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.label}>
+            {traces.length} session(s) détectée(s)
+          </Text>
+          <Text style={styles.sub}>
+            {totalPoints} points GPS · {totalEvents} marqueur
+            {totalEvents > 1 ? "s" : ""}
+          </Text>
+          <View style={styles.traceList}>
+            {traces.map((trace, index) => (
+              <View key={trace.sessionId} style={styles.traceRow}>
+                <Text style={styles.traceName}>Session {index + 1}</Text>
+                <Text style={styles.traceMeta}>
+                  {trace.points.length} pts · {trace.events.length} marqueur
+                  {trace.events.length > 1 ? "s" : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
       {userLocation ? (
         <Text style={styles.location}>
-          Position: {userLocation.latitude.toFixed(5)},{" "}
+          Position : {userLocation.latitude.toFixed(5)},{" "}
           {userLocation.longitude.toFixed(5)}
         </Text>
       ) : null}
-      <Text style={styles.note}>Carte non disponible sur cette plateforme</Text>
+      <Text style={styles.note}>
+        Ouvrez la liste des sessions pour choisir celles à afficher.
+      </Text>
     </View>
   );
 }
@@ -52,5 +79,30 @@ const styles = StyleSheet.create({
   label: { fontSize: 16, fontWeight: "600", color: COLORS.text },
   sub: { fontSize: 13, color: COLORS.textSecondary },
   location: { fontSize: 12, color: COLORS.info },
-  note: { fontSize: 11, color: COLORS.textTertiary, marginTop: 4 },
+  traceList: {
+    width: "100%",
+    marginTop: 14,
+    paddingHorizontal: 10,
+  },
+  traceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  traceName: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  traceMeta: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+  },
+  note: {
+    fontSize: 11,
+    color: COLORS.textTertiary,
+    marginTop: 8,
+    textAlign: "center",
+    maxWidth: 260,
+  },
 });

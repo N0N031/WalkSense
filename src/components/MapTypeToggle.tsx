@@ -38,7 +38,10 @@ export function MapTypeToggle({ currentType, onChange }: MapTypeToggleProps) {
 
 const styles = StyleSheet.create({
   container: {
+    width: "100%",
     flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     gap: 6,
     padding: 8,
     borderRadius: 10,
@@ -47,9 +50,10 @@ const styles = StyleSheet.create({
     borderColor: "rgba(212, 175, 55, 0.30)",
   },
   button: {
-    minWidth: 68,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    flex: 1,
+    minWidth: 0,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     borderRadius: 7,
     backgroundColor: "rgba(229, 231, 235, 0.18)",
   },
@@ -58,7 +62,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: "#F5F1E8",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
     textAlign: "center",
   },

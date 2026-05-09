@@ -4,28 +4,28 @@
  * Permet de voir les détails, supprimer, exporter
  */
 
-import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  ImageBackground,
-  Modal,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+    Alert,
+    FlatList,
+    ImageBackground,
+    Modal,
+    Pressable,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BrandLogo from "@/src/components/BrandLogo";
 import PremiumBackground from "@/src/components/PremiumBackground";
 import { COLORS } from "@/src/constants/colors";
-import { sessionService, Session } from "@/src/services/sessionService";
+import { Session, sessionService } from "@/src/services/sessionService";
 import { formatDistanceMeters } from "@/src/utils/format";
 
 /**
@@ -48,15 +48,6 @@ export default function HomeScreen() {
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
 
   /**
-   * Charger les sessions au focus
-   */
-  useFocusEffect(
-    useCallback(() => {
-      loadSessions();
-    }, [])
-  );
-
-  /**
    * Charger les sessions depuis le service
    */
   const loadSessions = async () => {
@@ -75,33 +66,42 @@ export default function HomeScreen() {
   };
 
   /**
+   * Charger les sessions au focus
+   */
+  useFocusEffect(
+    useCallback(() => {
+      loadSessions();
+    }, []),
+  );
+
+  useEffect(() => {
+    loadSessions();
+  }, []);
+
+  /**
    * Supprimer une session
    */
   const handleDeleteSession = (sessionId: string) => {
-    Alert.alert(
-      "Supprimer cette session ?",
-      "Cette action est irréversible",
-      [
-        {
-          text: "Annuler",
-          style: "cancel",
+    Alert.alert("Supprimer cette session ?", "Cette action est irréversible", [
+      {
+        text: "Annuler",
+        style: "cancel",
+      },
+      {
+        text: "Supprimer",
+        onPress: async () => {
+          try {
+            await sessionService.deleteSession(sessionId);
+            setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+            setShowDetails(false);
+            Alert.alert("✅ Session supprimée");
+          } catch {
+            Alert.alert("❌ Erreur", "Impossible de supprimer la session");
+          }
         },
-        {
-          text: "Supprimer",
-          onPress: async () => {
-            try {
-              await sessionService.deleteSession(sessionId);
-              setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-              setShowDetails(false);
-              Alert.alert("✅ Session supprimée");
-            } catch {
-              Alert.alert("❌ Erreur", "Impossible de supprimer la session");
-            }
-          },
-          style: "destructive",
-        },
-      ]
-    );
+        style: "destructive",
+      },
+    ]);
   };
 
   /**
@@ -191,7 +191,10 @@ export default function HomeScreen() {
 
   const handleExportSelectedJson = () => {
     if (selectedSessions.length === 0) {
-      Alert.alert("Selection vide", "Choisissez au moins une session a exporter.");
+      Alert.alert(
+        "Selection vide",
+        "Choisissez au moins une session a exporter.",
+      );
       return;
     }
 
@@ -200,10 +203,22 @@ export default function HomeScreen() {
       exportedAt: new Date().toISOString(),
       sessionCount: selectedSessions.length,
       totals: {
-        distance: selectedSessions.reduce((sum, session) => sum + session.distance, 0),
-        duration: selectedSessions.reduce((sum, session) => sum + session.duration, 0),
-        events: selectedSessions.reduce((sum, session) => sum + session.events.length, 0),
-        gpsPoints: selectedSessions.reduce((sum, session) => sum + session.gpsTrace.length, 0),
+        distance: selectedSessions.reduce(
+          (sum, session) => sum + session.distance,
+          0,
+        ),
+        duration: selectedSessions.reduce(
+          (sum, session) => sum + session.duration,
+          0,
+        ),
+        events: selectedSessions.reduce(
+          (sum, session) => sum + session.events.length,
+          0,
+        ),
+        gpsPoints: selectedSessions.reduce(
+          (sum, session) => sum + session.gpsTrace.length,
+          0,
+        ),
       },
       sessions: selectedSessions,
     };
@@ -216,7 +231,10 @@ export default function HomeScreen() {
 
   const handleExportSelectedGpx = () => {
     if (selectedSessions.length === 0) {
-      Alert.alert("Selection vide", "Choisissez au moins une session a exporter.");
+      Alert.alert(
+        "Selection vide",
+        "Choisissez au moins une session a exporter.",
+      );
       return;
     }
 
@@ -226,9 +244,16 @@ export default function HomeScreen() {
     });
   };
 
-  const activeCount = sessions.filter((session) => session.status !== "completed").length;
-  const completedCount = sessions.filter((session) => session.status === "completed").length;
-  const totalEvents = sessions.reduce((sum, session) => sum + session.events.length, 0);
+  const activeCount = sessions.filter(
+    (session) => session.status !== "completed",
+  ).length;
+  const completedCount = sessions.filter(
+    (session) => session.status === "completed",
+  ).length;
+  const totalEvents = sessions.reduce(
+    (sum, session) => sum + session.events.length,
+    0,
+  );
 
   const renderExportPreview = () => (
     <Modal
@@ -255,7 +280,11 @@ export default function HomeScreen() {
               });
             }}
           >
-            <Ionicons name="share-outline" size={18} color={COLORS.background} />
+            <Ionicons
+              name="share-outline"
+              size={18}
+              color={COLORS.background}
+            />
             <Text style={styles.exportShareText}>Partager</Text>
           </TouchableOpacity>
         </View>
@@ -292,16 +321,26 @@ export default function HomeScreen() {
       }}
       style={({ pressed }) => [
         styles.sessionCard,
-        selectionMode && selectedSessionIds.includes(item.id) && styles.sessionCardSelected,
+        selectionMode &&
+          selectedSessionIds.includes(item.id) &&
+          styles.sessionCardSelected,
         pressed && { opacity: 0.7 },
       ]}
     >
       {selectionMode ? (
         <View style={styles.selectionCheck}>
           <Ionicons
-            name={selectedSessionIds.includes(item.id) ? "checkmark" : "ellipse-outline"}
+            name={
+              selectedSessionIds.includes(item.id)
+                ? "checkmark"
+                : "ellipse-outline"
+            }
             size={18}
-            color={selectedSessionIds.includes(item.id) ? COLORS.primary : COLORS.accent}
+            color={
+              selectedSessionIds.includes(item.id)
+                ? COLORS.primary
+                : COLORS.accent
+            }
           />
         </View>
       ) : null}
@@ -315,7 +354,9 @@ export default function HomeScreen() {
             ]}
           >
             <Ionicons
-              name={refillStats.pending > 0 ? "alert-circle" : "checkmark-circle"}
+              name={
+                refillStats.pending > 0 ? "alert-circle" : "checkmark-circle"
+              }
               size={13}
               color={refillStats.pending > 0 ? COLORS.warning : COLORS.success}
             />
@@ -342,9 +383,15 @@ export default function HomeScreen() {
           </Text>
           <View style={styles.statusChip}>
             <Ionicons
-              name={item.status === "completed" ? "checkmark-circle" : "radio-button-on"}
+              name={
+                item.status === "completed"
+                  ? "checkmark-circle"
+                  : "radio-button-on"
+              }
               size={13}
-              color={item.status === "completed" ? COLORS.success : COLORS.warning}
+              color={
+                item.status === "completed" ? COLORS.success : COLORS.warning
+              }
             />
             <Text style={styles.sessionCardSubtitle}>
               {item.status === "completed" ? "Terminée" : "En cours"}
@@ -353,7 +400,9 @@ export default function HomeScreen() {
               <>
                 <Text style={styles.sessionCardSubtitle}> · </Text>
                 <Ionicons name="lock-closed" size={11} color={COLORS.accent} />
-                <Text style={[styles.sessionCardSubtitle, { color: COLORS.accent }]}>
+                <Text
+                  style={[styles.sessionCardSubtitle, { color: COLORS.accent }]}
+                >
                   Verrouillée
                 </Text>
               </>
@@ -361,44 +410,26 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.sessionCardBadge}>
-          <Text style={styles.sessionCardBadgeText}>
-            {item.events.length}
-          </Text>
+          <Text style={styles.sessionCardBadgeText}>{item.events.length}</Text>
         </View>
       </View>
 
       <View style={styles.sessionCardStats}>
         <View style={styles.statItem}>
-          <Ionicons
-            name="timer-outline"
-            size={16}
-            color={COLORS.primary}
-          />
-          <Text style={styles.statLabel}>
-            {formatDuration(item.duration)}
-          </Text>
+          <Ionicons name="timer-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.statLabel}>{formatDuration(item.duration)}</Text>
         </View>
 
         <View style={styles.statItem}>
-          <Ionicons
-            name="navigate-outline"
-            size={16}
-            color={COLORS.primary}
-          />
+          <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
           <Text style={styles.statLabel}>
             {formatDistanceMeters(item.distance)}
           </Text>
         </View>
 
         <View style={styles.statItem}>
-          <Ionicons
-            name="search-outline"
-            size={16}
-            color={COLORS.primary}
-          />
-          <Text style={styles.statLabel}>
-            {item.events.length} trouvailles
-          </Text>
+          <Ionicons name="search-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.statLabel}>{item.events.length} trouvailles</Text>
         </View>
       </View>
     </Pressable>
@@ -410,231 +441,263 @@ export default function HomeScreen() {
   if (showDetails && selectedSession) {
     return (
       <PremiumBackground>
-      <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
-        <ScrollView
-          style={styles.detailsContainer}
-          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
-        >
-          {/* Header */}
-          <View style={styles.detailsHeader}>
-            <TouchableOpacity
-              onPress={() => setShowDetails(false)}
-              style={styles.detailsBackButton}
-            >
-              <Ionicons
-                name="chevron-back"
-                size={24}
-                color={COLORS.primary}
-              />
-              <Text style={styles.detailsBackText}>Retour</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Infos principales */}
-          <View style={styles.detailsSection}>
-            <Text style={styles.detailsSectionTitle}>Informations</Text>
-
-            <View style={styles.detailsRow}>
-              <Text style={styles.detailsLabel}>Date/Heure :</Text>
-              <Text style={styles.detailsValue}>
-                {formatDate(selectedSession.startTime)}
-              </Text>
+        <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+          <ScrollView
+            style={styles.detailsContainer}
+            contentContainerStyle={{
+              paddingBottom: Math.max(insets.bottom, 24),
+            }}
+          >
+            {/* Header */}
+            <View style={styles.detailsHeader}>
+              <TouchableOpacity
+                onPress={() => setShowDetails(false)}
+                style={styles.detailsBackButton}
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={24}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.detailsBackText}>Retour</Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={styles.detailsRow}>
-              <Text style={styles.detailsLabel}>État :</Text>
-              <View style={styles.statusChip}>
-                <Ionicons
-                  name={selectedSession.status === "completed" ? "checkmark-circle" : "radio-button-on"}
-                  size={14}
-                  color={selectedSession.status === "completed" ? COLORS.success : COLORS.warning}
-                />
+            {/* Infos principales */}
+            <View style={styles.detailsSection}>
+              <Text style={styles.detailsSectionTitle}>Informations</Text>
+
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailsLabel}>Date/Heure :</Text>
                 <Text style={styles.detailsValue}>
-                  {selectedSession.status === "completed" ? "Terminée" : "En cours"}
+                  {formatDate(selectedSession.startTime)}
+                </Text>
+              </View>
+
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailsLabel}>État :</Text>
+                <View style={styles.statusChip}>
+                  <Ionicons
+                    name={
+                      selectedSession.status === "completed"
+                        ? "checkmark-circle"
+                        : "radio-button-on"
+                    }
+                    size={14}
+                    color={
+                      selectedSession.status === "completed"
+                        ? COLORS.success
+                        : COLORS.warning
+                    }
+                  />
+                  <Text style={styles.detailsValue}>
+                    {selectedSession.status === "completed"
+                      ? "Terminée"
+                      : "En cours"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailsLabel}>Durée :</Text>
+                <Text style={styles.detailsValue}>
+                  {formatDuration(selectedSession.duration)}
+                </Text>
+              </View>
+
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailsLabel}>Distance :</Text>
+                <Text style={styles.detailsValue}>
+                  {formatDistanceMeters(selectedSession.distance)}
+                </Text>
+              </View>
+
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailsLabel}>Trouvailles :</Text>
+                <Text style={styles.detailsValue}>
+                  {selectedSession.events.length}
+                </Text>
+              </View>
+
+              {getRefillStats(selectedSession).total > 0 ? (
+                <View style={styles.detailsRow}>
+                  <Text style={styles.detailsLabel}>Rebouchage :</Text>
+                  <Text
+                    style={[
+                      styles.detailsValue,
+                      getRefillStats(selectedSession).pending > 0 &&
+                        styles.detailsWarning,
+                    ]}
+                  >
+                    {getRefillStats(selectedSession).done}/
+                    {getRefillStats(selectedSession).total} confirmes
+                  </Text>
+                </View>
+              ) : null}
+
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailsLabel}>Points GPS :</Text>
+                <Text style={styles.detailsValue}>
+                  {selectedSession.gpsTrace.length}
                 </Text>
               </View>
             </View>
 
-            <View style={styles.detailsRow}>
-              <Text style={styles.detailsLabel}>Durée :</Text>
-              <Text style={styles.detailsValue}>
-                {formatDuration(selectedSession.duration)}
-              </Text>
-            </View>
-
-            <View style={styles.detailsRow}>
-              <Text style={styles.detailsLabel}>Distance :</Text>
-              <Text style={styles.detailsValue}>
-                {formatDistanceMeters(selectedSession.distance)}
-              </Text>
-            </View>
-
-            <View style={styles.detailsRow}>
-              <Text style={styles.detailsLabel}>Trouvailles :</Text>
-              <Text style={styles.detailsValue}>
-                {selectedSession.events.length}
-              </Text>
-            </View>
-
-            {getRefillStats(selectedSession).total > 0 ? (
-              <View style={styles.detailsRow}>
-                <Text style={styles.detailsLabel}>Rebouchage :</Text>
-                <Text
-                  style={[
-                    styles.detailsValue,
-                    getRefillStats(selectedSession).pending > 0 &&
-                      styles.detailsWarning,
-                  ]}
-                >
-                  {getRefillStats(selectedSession).done}/
-                  {getRefillStats(selectedSession).total} confirmes
+            {/* Hash SHA-256 */}
+            {selectedSession.hash ? (
+              <View style={styles.detailsSection}>
+                <View style={styles.hashHeader}>
+                  <Ionicons
+                    name="lock-closed"
+                    size={15}
+                    color={COLORS.accent}
+                  />
+                  <Text style={styles.detailsSectionTitle}>
+                    Session verrouillée
+                  </Text>
+                </View>
+                <Text style={styles.hashSubtitle}>
+                  SHA-256 calculé à la clôture — toute modification invalide
+                  cette empreinte.
                 </Text>
+                <View style={styles.hashBox}>
+                  <Text style={styles.hashText}>{selectedSession.hash}</Text>
+                </View>
+                {selectedSession.lockedAt ? (
+                  <Text style={styles.hashDate}>
+                    Verrouillée le {formatDate(selectedSession.lockedAt)}
+                  </Text>
+                ) : null}
               </View>
             ) : null}
 
-            <View style={styles.detailsRow}>
-              <Text style={styles.detailsLabel}>Points GPS :</Text>
-              <Text style={styles.detailsValue}>
-                {selectedSession.gpsTrace.length}
-              </Text>
-            </View>
-          </View>
-
-          {/* Hash SHA-256 */}
-          {selectedSession.hash ? (
-            <View style={styles.detailsSection}>
-              <View style={styles.hashHeader}>
-                <Ionicons name="lock-closed" size={15} color={COLORS.accent} />
-                <Text style={styles.detailsSectionTitle}>Session verrouillée</Text>
-              </View>
-              <Text style={styles.hashSubtitle}>
-                SHA-256 calculé à la clôture — toute modification invalide cette empreinte.
-              </Text>
-              <View style={styles.hashBox}>
-                <Text style={styles.hashText}>{selectedSession.hash}</Text>
-              </View>
-              {selectedSession.lockedAt ? (
-                <Text style={styles.hashDate}>
-                  Verrouillée le {formatDate(selectedSession.lockedAt)}
+            {/* Événements */}
+            {selectedSession.events.length > 0 && (
+              <View style={styles.detailsSection}>
+                <Text style={styles.detailsSectionTitle}>
+                  Trouvailles ({selectedSession.events.length})
                 </Text>
-              ) : null}
-            </View>
-          ) : null}
 
-          {/* Événements */}
-          {selectedSession.events.length > 0 && (
-            <View style={styles.detailsSection}>
-              <Text style={styles.detailsSectionTitle}>
-                Trouvailles ({selectedSession.events.length})
-              </Text>
-
-              {selectedSession.events.map((event, idx) => (
-                <View key={event.id} style={styles.eventItem}>
-                  <View style={styles.eventItemHeader}>
-                    <Text style={styles.eventItemTime}>
-                      #{idx + 1} · {formatDate(event.timestamp)}
-                    </Text>
-                    <View
-                      style={[
-                        styles.eventItemBadge,
-                        {
-                          backgroundColor:
-                            event.type === "metal"
-                              ? "#FFD700"
-                              : event.type === "noise"
-                              ? "#FF6B6B"
-                              : event.type === "anomaly"
-                              ? "#4ECDC4"
-                              : COLORS.border,
-                        },
-                      ]}
-                    >
-                      <Text style={styles.eventItemBadgeText}>
-                        {event.type}
+                {selectedSession.events.map((event, idx) => (
+                  <View key={event.id} style={styles.eventItem}>
+                    <View style={styles.eventItemHeader}>
+                      <Text style={styles.eventItemTime}>
+                        #{idx + 1} · {formatDate(event.timestamp)}
                       </Text>
-                    </View>
-                  </View>
-
-                  {event.classification && (
-                    <Text style={styles.eventItemClassification}>
-                      Classification : {event.classification} ✓
-                    </Text>
-                  )}
-
-                  {event.classification ? (
-                    <View style={styles.refillStatusRow}>
-                      <Ionicons
-                        name={event.refilledAt ? "checkmark-circle" : "alert-circle"}
-                        size={13}
-                        color={event.refilledAt ? COLORS.success : COLORS.warning}
-                      />
-                      <Text
+                      <View
                         style={[
-                          styles.refillStatusText,
-                          !event.refilledAt && styles.refillStatusPending,
+                          styles.eventItemBadge,
+                          {
+                            backgroundColor:
+                              event.type === "metal"
+                                ? "#FFD700"
+                                : event.type === "noise"
+                                  ? "#FF6B6B"
+                                  : event.type === "anomaly"
+                                    ? "#4ECDC4"
+                                    : COLORS.border,
+                          },
                         ]}
                       >
-                        {event.refilledAt
-                          ? `Rebouche le ${formatDate(event.refilledAt)}`
-                          : "A reboucher"}
+                        <Text style={styles.eventItemBadgeText}>
+                          {event.type}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {event.classification && (
+                      <Text style={styles.eventItemClassification}>
+                        Classification : {event.classification} ✓
+                      </Text>
+                    )}
+
+                    {event.classification ? (
+                      <View style={styles.refillStatusRow}>
+                        <Ionicons
+                          name={
+                            event.refilledAt
+                              ? "checkmark-circle"
+                              : "alert-circle"
+                          }
+                          size={13}
+                          color={
+                            event.refilledAt ? COLORS.success : COLORS.warning
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.refillStatusText,
+                            !event.refilledAt && styles.refillStatusPending,
+                          ]}
+                        >
+                          {event.refilledAt
+                            ? `Rebouche le ${formatDate(event.refilledAt)}`
+                            : "A reboucher"}
+                        </Text>
+                      </View>
+                    ) : null}
+
+                    {event.notes && (
+                      <Text style={styles.eventItemNotes}>
+                        Notes : {event.notes}
+                      </Text>
+                    )}
+
+                    <View style={styles.coordsRow}>
+                      <Ionicons
+                        name="location-outline"
+                        size={11}
+                        color={COLORS.textTertiary}
+                      />
+                      <Text style={styles.eventItemCoords}>
+                        {event.location.lat.toFixed(5)},{" "}
+                        {event.location.lon.toFixed(5)}
                       </Text>
                     </View>
-                  ) : null}
-
-                  {event.notes && (
-                    <Text style={styles.eventItemNotes}>
-                      Notes : {event.notes}
-                    </Text>
-                  )}
-
-                  <View style={styles.coordsRow}>
-                    <Ionicons name="location-outline" size={11} color={COLORS.textTertiary} />
-                    <Text style={styles.eventItemCoords}>
-                      {event.location.lat.toFixed(5)}, {event.location.lon.toFixed(5)}
-                    </Text>
                   </View>
-                </View>
-              ))}
+                ))}
+              </View>
+            )}
+
+            {/* Actions */}
+            <View style={styles.detailsSection}>
+              <Text style={styles.detailsSectionTitle}>Actions</Text>
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => handleExportJson(selectedSession.id)}
+              >
+                <Ionicons
+                  name="document-outline"
+                  size={20}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.actionButtonText}>Exporter JSON</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => handleExportGpx(selectedSession.id)}
+              >
+                <Ionicons name="map-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.actionButtonText}>Exporter GPX</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonDanger]}
+                onPress={() => handleDeleteSession(selectedSession.id)}
+              >
+                <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+                <Text style={[styles.actionButtonText, { color: "#FF6B6B" }]}>
+                  Supprimer la session
+                </Text>
+              </TouchableOpacity>
             </View>
-          )}
 
-          {/* Actions */}
-          <View style={styles.detailsSection}>
-            <Text style={styles.detailsSectionTitle}>Actions</Text>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() =>
-                handleExportJson(selectedSession.id)
-              }
-            >
-              <Ionicons name="document-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.actionButtonText}>Exporter JSON</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handleExportGpx(selectedSession.id)}
-            >
-              <Ionicons name="map-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.actionButtonText}>Exporter GPX</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.actionButtonDanger]}
-              onPress={() => handleDeleteSession(selectedSession.id)}
-            >
-              <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-              <Text style={[styles.actionButtonText, { color: "#FF6B6B" }]}>
-                Supprimer la session
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ height: 40 }} />
-        </ScrollView>
-        {renderExportPreview()}
-      </View>
+            <View style={{ height: 40 }} />
+          </ScrollView>
+          {renderExportPreview()}
+        </View>
       </PremiumBackground>
     );
   }
@@ -645,104 +708,122 @@ export default function HomeScreen() {
   return (
     <PremiumBackground>
       <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ImageBackground
-        source={require("@/assets/images/walksense-splash-bg.png")}
-        resizeMode="cover"
-        style={styles.hero}
-        imageStyle={styles.heroImage}
-      >
-        <View style={styles.heroOverlay} />
-        <View style={styles.header}>
-          <BrandLogo compact />
-          <View style={styles.headerCopy}>
-            <Text style={styles.headerTitle}>WalkSense</Text>
-            <Text style={styles.headerSubtitle}>
-              {sessions.length} session{sessions.length !== 1 ? "s" : ""}
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.settingsButton} onPress={toggleSelectionMode}>
-            <Ionicons
-              name={selectionMode ? "close" : "checkbox-outline"}
-              size={20}
-              color={COLORS.text}
-            />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.statsGrid}>
-          <StatTile value={activeCount} label="En cours" icon="radio-button-on" />
-          <StatTile value={completedCount} label="Terminees" icon="checkmark-circle" />
-          <StatTile value={totalEvents} label="Total" icon="search-outline" />
-        </View>
-      </ImageBackground>
-
-      {selectionMode ? (
-        <View style={styles.selectionToolbar}>
-          <View>
-            <Text style={styles.selectionTitle}>
-              {selectedSessionIds.length} selectionnee{selectedSessionIds.length > 1 ? "s" : ""}
-            </Text>
-            <TouchableOpacity onPress={toggleSelectAll}>
-              <Text style={styles.selectionLink}>
-                {selectedSessionIds.length === sessions.length
-                  && sessions.length > 0
-                  ? "Tout deselectionner"
-                  : "Tout selectionner"}
+        <ImageBackground
+          source={require("@/assets/images/walksense-splash-bg.png")}
+          resizeMode="cover"
+          style={styles.hero}
+          imageStyle={styles.heroImage}
+        >
+          <View style={styles.heroOverlay} />
+          <View style={styles.header}>
+            <BrandLogo compact />
+            <View style={styles.headerCopy}>
+              <Text style={styles.headerTitle}>WalkSense</Text>
+              <Text style={styles.headerSubtitle}>
+                {sessions.length} session{sessions.length !== 1 ? "s" : ""}
               </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={toggleSelectionMode}
+            >
+              <Ionicons
+                name={selectionMode ? "close" : "checkbox-outline"}
+                size={20}
+                color={COLORS.text}
+              />
             </TouchableOpacity>
           </View>
-          <View style={styles.selectionActions}>
-            <TouchableOpacity
-              style={[
-                styles.selectionActionButton,
-                selectedSessionIds.length === 0 && styles.selectionActionDisabled,
-              ]}
-              onPress={handleExportSelectedJson}
-              disabled={selectedSessionIds.length === 0}
-            >
-              <Ionicons name="document-text-outline" size={17} color={COLORS.accent} />
-              <Text style={styles.selectionActionText}>JSON</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.selectionActionButton,
-                selectedSessionIds.length === 0 && styles.selectionActionDisabled,
-              ]}
-              onPress={handleExportSelectedGpx}
-              disabled={selectedSessionIds.length === 0}
-            >
-              <Ionicons name="map-outline" size={17} color={COLORS.accent} />
-              <Text style={styles.selectionActionText}>GPX</Text>
-            </TouchableOpacity>
+          <View style={styles.statsGrid}>
+            <StatTile
+              value={activeCount}
+              label="En cours"
+              icon="radio-button-on"
+            />
+            <StatTile
+              value={completedCount}
+              label="Terminees"
+              icon="checkmark-circle"
+            />
+            <StatTile value={totalEvents} label="Total" icon="search-outline" />
           </View>
-        </View>
-      ) : null}
+        </ImageBackground>
 
-      {/* Sessions list */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Chargement...</Text>
-        </View>
-      ) : sessions.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <BrandLogo />
-          <Text style={styles.emptyTitle}>Aucune session</Text>
-          <Text style={styles.emptySubtitle}>
-            Allez a l&apos;onglet &quot;Explore&quot; pour commencer
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={sessions}
-          renderItem={renderSessionItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingBottom: insets.bottom + 96 },
-          ]}
-          scrollEnabled={true}
-        />
-      )}
-      {renderExportPreview()}
+        {selectionMode ? (
+          <View style={styles.selectionToolbar}>
+            <View>
+              <Text style={styles.selectionTitle}>
+                {selectedSessionIds.length} selectionnee
+                {selectedSessionIds.length > 1 ? "s" : ""}
+              </Text>
+              <TouchableOpacity onPress={toggleSelectAll}>
+                <Text style={styles.selectionLink}>
+                  {selectedSessionIds.length === sessions.length &&
+                  sessions.length > 0
+                    ? "Tout deselectionner"
+                    : "Tout selectionner"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.selectionActions}>
+              <TouchableOpacity
+                style={[
+                  styles.selectionActionButton,
+                  selectedSessionIds.length === 0 &&
+                    styles.selectionActionDisabled,
+                ]}
+                onPress={handleExportSelectedJson}
+                disabled={selectedSessionIds.length === 0}
+              >
+                <Ionicons
+                  name="document-text-outline"
+                  size={17}
+                  color={COLORS.accent}
+                />
+                <Text style={styles.selectionActionText}>JSON</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.selectionActionButton,
+                  selectedSessionIds.length === 0 &&
+                    styles.selectionActionDisabled,
+                ]}
+                onPress={handleExportSelectedGpx}
+                disabled={selectedSessionIds.length === 0}
+              >
+                <Ionicons name="map-outline" size={17} color={COLORS.accent} />
+                <Text style={styles.selectionActionText}>GPX</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Sessions list */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Chargement...</Text>
+          </View>
+        ) : sessions.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <BrandLogo />
+            <Text style={styles.emptyTitle}>Aucune session</Text>
+            <Text style={styles.emptySubtitle}>
+              Allez a l&apos;onglet &quot;Explore&quot; pour commencer
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={sessions}
+            renderItem={renderSessionItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: insets.bottom + 96 },
+            ]}
+            scrollEnabled={true}
+          />
+        )}
+        {renderExportPreview()}
       </View>
     </PremiumBackground>
   );
