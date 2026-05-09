@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Rajdhani_600SemiBold, Rajdhani_700Bold } from '@expo-google-fonts/rajdhani';
+import { Manrope_500Medium, Manrope_600SemiBold } from '@expo-google-fonts/manrope';
 import { useFonts } from 'expo-font';
 import { Href, router, Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -19,7 +19,7 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const pathname = usePathname();
-  useFonts({ Rajdhani_700Bold, Rajdhani_600SemiBold });
+  useFonts({ Manrope_600SemiBold, Manrope_500Medium });
 
   useEffect(() => {
     let active = true;

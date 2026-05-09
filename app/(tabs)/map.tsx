@@ -123,7 +123,7 @@ export default function MapScreen() {
         <GlobalMap
           traces={traces}
           userLocation={userLocation}
-          controlsTopOffset={insets.top + (StatusBar.currentHeight ?? 0) + 130}
+          controlsTopOffset={(StatusBar.currentHeight ?? insets.top) + 116}
           controlsBottomOffset={insets.bottom + 96}
         />
         {loading ? (
@@ -136,7 +136,7 @@ export default function MapScreen() {
       <View
         style={[
           styles.header,
-          { top: (StatusBar.currentHeight ?? insets.top) + 8 },
+          { top: (StatusBar.currentHeight ?? insets.top) + 6 },
         ]}
       >
         <PremiumHeader
