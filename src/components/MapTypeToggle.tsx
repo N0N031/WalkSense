@@ -1,7 +1,15 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-export type MapType = "google" | "satellite" | "osm" | "ign";
+export type MapType =
+  | "google"
+  | "satellite"
+  | "osm"
+  | "ign"
+  | "ign-ortho"
+  | "ign-cassini"
+  | "ign-etatmajor"
+  | "ign-cadastre";
 
 interface MapTypeToggleProps {
   currentType: MapType;
@@ -9,10 +17,14 @@ interface MapTypeToggleProps {
 }
 
 const TYPES: { id: MapType; label: string }[] = [
-  { id: "google", label: "Google" },
-  { id: "satellite", label: "Satellite" },
+  { id: "google", label: "Route" },
+  { id: "satellite", label: "Sat." },
   { id: "osm", label: "OSM" },
   { id: "ign", label: "IGN" },
+  { id: "ign-ortho", label: "Ortho" },
+  { id: "ign-cassini", label: "Cassini" },
+  { id: "ign-etatmajor", label: "État-Maj." },
+  { id: "ign-cadastre", label: "Cadastre" },
 ];
 
 export function MapTypeToggle({ currentType, onChange }: MapTypeToggleProps) {
@@ -38,35 +50,36 @@ export function MapTypeToggle({ currentType, onChange }: MapTypeToggleProps) {
 
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 6,
-    padding: 8,
-    borderRadius: 10,
-    backgroundColor: "rgba(5, 12, 7, 0.92)",
+    gap: 4,
+    padding: 6,
+    borderRadius: 12,
+    backgroundColor: "rgba(5, 12, 7, 0.94)",
     borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.30)",
+    borderColor: "rgba(212, 175, 55, 0.28)",
   },
   button: {
-    flex: 1,
-    minWidth: 0,
-    paddingHorizontal: 6,
-    paddingVertical: 6,
+    flexBasis: "47%",
+    flexGrow: 1,
+    paddingHorizontal: 4,
+    paddingVertical: 7,
     borderRadius: 7,
-    backgroundColor: "rgba(229, 231, 235, 0.18)",
+    backgroundColor: "rgba(229, 231, 235, 0.12)",
+    alignItems: "center",
   },
   buttonActive: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "rgba(212, 175, 55, 0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.55)",
   },
   text: {
-    color: "#F5F1E8",
+    color: "#C8C4BA",
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: "700",
     textAlign: "center",
   },
   textActive: {
-    color: "white",
+    color: "#D4AF37",
   },
 });
