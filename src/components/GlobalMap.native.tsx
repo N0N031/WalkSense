@@ -18,10 +18,15 @@ const TILES: Record<string, string> = {
   "ign-cadastre": IGN("CADASTRALPARCELS.PARCELLAIRE_EXPRESS", "image/png", "PM_0_19"),
 };
 
-const TILE_MAX_ZOOM: Record<string, number> = {
-  "ign-ortho": 21,
-  "ign-cassini": 14,
-  "ign-etatmajor": 15,
+const ZOOM_LIMITS: Record<string, { min: number; max: number }> = {
+  google:        { min: 0,  max: 20 },
+  satellite:     { min: 0,  max: 20 },
+  osm:           { min: 0,  max: 19 },
+  ign:           { min: 0,  max: 19 },
+  "ign-ortho":   { min: 0,  max: 21 },
+  "ign-cassini": { min: 6,  max: 14 },
+  "ign-etatmajor": { min: 6, max: 15 },
+  "ign-cadastre":  { min: 0, max: 19 },
 };
 
 export interface SessionTrace {
@@ -50,7 +55,7 @@ export default function GlobalMap({
   const centeredOnFirstLocationRef = useRef(false);
 
   const tileUrlTemplate = TILES[mapType] ?? undefined;
-  const tileMaxZoom = TILE_MAX_ZOOM[mapType] ?? 19;
+  const zoomLimits = ZOOM_LIMITS[mapType] ?? { min: 0, max: 19 };
 
   const nativeMapType =
     mapType === "satellite"
@@ -116,7 +121,8 @@ export default function GlobalMap({
         style={{ flex: 1 }}
         mapType={nativeMapType as any}
         initialRegion={initialRegion}
-        maxZoomLevel={19}
+        minZoomLevel={zoomLimits.min}
+        maxZoomLevel={zoomLimits.max}
         showsUserLocation={false}
         showsMyLocationButton={false}
         loadingEnabled
@@ -130,7 +136,7 @@ export default function GlobalMap({
         {tileUrlTemplate ? (
           <UrlTile
             urlTemplate={tileUrlTemplate}
-            maximumZ={tileMaxZoom}
+            maximumZ={zoomLimits.max}
             tileSize={256}
             flipY={false}
           />
