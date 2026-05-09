@@ -44,6 +44,8 @@ export default function HomeScreen() {
     title: string;
     content: string;
   } | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
 
   /**
    * Charger les sessions au focus
@@ -160,6 +162,70 @@ export default function HomeScreen() {
     };
   };
 
+  const selectedSessions = sessions.filter((session) =>
+    selectedSessionIds.includes(session.id),
+  );
+
+  const toggleSelectionMode = () => {
+    setSelectionMode((current) => {
+      if (current) setSelectedSessionIds([]);
+      return !current;
+    });
+  };
+
+  const toggleSessionSelection = (sessionId: string) => {
+    setSelectedSessionIds((current) =>
+      current.includes(sessionId)
+        ? current.filter((id) => id !== sessionId)
+        : [...current, sessionId],
+    );
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedSessionIds((current) =>
+      sessions.length > 0 && current.length === sessions.length
+        ? []
+        : sessions.map((session) => session.id),
+    );
+  };
+
+  const handleExportSelectedJson = () => {
+    if (selectedSessions.length === 0) {
+      Alert.alert("Selection vide", "Choisissez au moins une session a exporter.");
+      return;
+    }
+
+    const payload = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      sessionCount: selectedSessions.length,
+      totals: {
+        distance: selectedSessions.reduce((sum, session) => sum + session.distance, 0),
+        duration: selectedSessions.reduce((sum, session) => sum + session.duration, 0),
+        events: selectedSessions.reduce((sum, session) => sum + session.events.length, 0),
+        gpsPoints: selectedSessions.reduce((sum, session) => sum + session.gpsTrace.length, 0),
+      },
+      sessions: selectedSessions,
+    };
+
+    setExportPreview({
+      title: `Export JSON global (${selectedSessions.length})`,
+      content: JSON.stringify(payload, null, 2),
+    });
+  };
+
+  const handleExportSelectedGpx = () => {
+    if (selectedSessions.length === 0) {
+      Alert.alert("Selection vide", "Choisissez au moins une session a exporter.");
+      return;
+    }
+
+    setExportPreview({
+      title: `Export GPX global (${selectedSessions.length})`,
+      content: buildMultiSessionGpx(selectedSessions),
+    });
+  };
+
   const activeCount = sessions.filter((session) => session.status !== "completed").length;
   const completedCount = sessions.filter((session) => session.status === "completed").length;
   const totalEvents = sessions.reduce((sum, session) => sum + session.events.length, 0);
@@ -213,14 +279,32 @@ export default function HomeScreen() {
   const renderSessionItem = ({ item }: { item: Session }) => (
     <Pressable
       onPress={() => {
+        if (selectionMode) {
+          toggleSessionSelection(item.id);
+          return;
+        }
         setSelectedSession(item);
         setShowDetails(true);
       }}
+      onLongPress={() => {
+        setSelectionMode(true);
+        toggleSessionSelection(item.id);
+      }}
       style={({ pressed }) => [
         styles.sessionCard,
+        selectionMode && selectedSessionIds.includes(item.id) && styles.sessionCardSelected,
         pressed && { opacity: 0.7 },
       ]}
     >
+      {selectionMode ? (
+        <View style={styles.selectionCheck}>
+          <Ionicons
+            name={selectedSessionIds.includes(item.id) ? "checkmark" : "ellipse-outline"}
+            size={18}
+            color={selectedSessionIds.includes(item.id) ? COLORS.primary : COLORS.accent}
+          />
+        </View>
+      ) : null}
       {(() => {
         const refillStats = getRefillStats(item);
         return refillStats.total > 0 ? (
@@ -246,7 +330,12 @@ export default function HomeScreen() {
           </View>
         ) : null;
       })()}
-      <View style={styles.sessionCardHeader}>
+      <View
+        style={[
+          styles.sessionCardHeader,
+          selectionMode && styles.sessionCardHeaderSelecting,
+        ]}
+      >
         <View>
           <Text style={styles.sessionCardDate}>
             {formatDate(item.startTime)}
@@ -571,9 +660,13 @@ export default function HomeScreen() {
               {sessions.length} session{sessions.length !== 1 ? "s" : ""}
             </Text>
           </View>
-          <View style={styles.settingsButton}>
-            <Ionicons name="settings-outline" size={20} color={COLORS.text} />
-          </View>
+          <TouchableOpacity style={styles.settingsButton} onPress={toggleSelectionMode}>
+            <Ionicons
+              name={selectionMode ? "close" : "checkbox-outline"}
+              size={20}
+              color={COLORS.text}
+            />
+          </TouchableOpacity>
         </View>
         <View style={styles.statsGrid}>
           <StatTile value={activeCount} label="En cours" icon="radio-button-on" />
@@ -581,6 +674,48 @@ export default function HomeScreen() {
           <StatTile value={totalEvents} label="Total" icon="search-outline" />
         </View>
       </ImageBackground>
+
+      {selectionMode ? (
+        <View style={styles.selectionToolbar}>
+          <View>
+            <Text style={styles.selectionTitle}>
+              {selectedSessionIds.length} selectionnee{selectedSessionIds.length > 1 ? "s" : ""}
+            </Text>
+            <TouchableOpacity onPress={toggleSelectAll}>
+              <Text style={styles.selectionLink}>
+                {selectedSessionIds.length === sessions.length
+                  && sessions.length > 0
+                  ? "Tout deselectionner"
+                  : "Tout selectionner"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.selectionActions}>
+            <TouchableOpacity
+              style={[
+                styles.selectionActionButton,
+                selectedSessionIds.length === 0 && styles.selectionActionDisabled,
+              ]}
+              onPress={handleExportSelectedJson}
+              disabled={selectedSessionIds.length === 0}
+            >
+              <Ionicons name="document-text-outline" size={17} color={COLORS.accent} />
+              <Text style={styles.selectionActionText}>JSON</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.selectionActionButton,
+                selectedSessionIds.length === 0 && styles.selectionActionDisabled,
+              ]}
+              onPress={handleExportSelectedGpx}
+              disabled={selectedSessionIds.length === 0}
+            >
+              <Ionicons name="map-outline" size={17} color={COLORS.accent} />
+              <Text style={styles.selectionActionText}>GPX</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
 
       {/* Sessions list */}
       {loading ? (
@@ -611,6 +746,62 @@ export default function HomeScreen() {
       </View>
     </PremiumBackground>
   );
+}
+
+function buildMultiSessionGpx(sessions: Session[]): string {
+  let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="WalkSense">
+  <metadata>
+    <name>WalkSense export global</name>
+    <time>${new Date().toISOString()}</time>
+  </metadata>
+`;
+
+  for (const session of sessions) {
+    gpx += `  <trk>
+    <name>Session ${escapeXml(session.id)}</name>
+    <trkseg>
+`;
+
+    for (const point of session.gpsTrace) {
+      gpx += `      <trkpt lat="${point.lat}" lon="${point.lon}">
+        <ele>${point.altitude || 0}</ele>
+        <time>${new Date(point.timestamp).toISOString()}</time>
+        <accuracy>${point.accuracy}</accuracy>
+      </trkpt>\n`;
+    }
+
+    gpx += `    </trkseg>
+  </trk>
+`;
+
+    for (const event of session.events) {
+      const lat = event.position?.latitude ?? event.location.lat;
+      const lon = event.position?.longitude ?? event.location.lon;
+      const label = `${event.type} - ${event.classification || "non classe"}`;
+      gpx += `  <wpt lat="${lat}" lon="${lon}">
+    <name>${escapeXml(label)}</name>
+    <time>${new Date(event.timestamp).toISOString()}</time>
+    <desc>${escapeXml(event.notes || "")}</desc>
+    <extensions>
+      <sessionId>${escapeXml(session.id)}</sessionId>
+    </extensions>
+  </wpt>
+`;
+    }
+  }
+
+  gpx += "</gpx>";
+  return gpx;
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 function StatTile({
@@ -706,6 +897,62 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.glass,
   },
 
+  selectionToolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.glassStrong,
+  },
+
+  selectionTitle: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  selectionLink: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 4,
+  },
+
+  selectionActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+
+  selectionActionButton: {
+    minWidth: 68,
+    height: 38,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    backgroundColor: "rgba(212, 175, 55, 0.10)",
+  },
+
+  selectionActionDisabled: {
+    opacity: 0.35,
+  },
+
+  selectionActionText: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+
   statsGrid: {
     flexDirection: "row",
     gap: 10,
@@ -767,11 +1014,35 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  sessionCardSelected: {
+    borderColor: COLORS.accent,
+    backgroundColor: "rgba(12, 26, 12, 0.92)",
+  },
+
+  selectionCheck: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 2,
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.glassStrong,
+  },
+
   sessionCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 12,
+  },
+
+  sessionCardHeaderSelecting: {
+    paddingRight: 36,
   },
 
   sessionCardDate: {
