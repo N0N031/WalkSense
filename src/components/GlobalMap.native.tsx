@@ -13,8 +13,8 @@ const TILES: Record<string, string> = {
   osm: "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
   ign: IGN("GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2"),
   "ign-ortho": IGN("ORTHOIMAGERY.ORTHOPHOTOS", "image/jpeg"),
-  "ign-cassini": IGN("AN-IGNF_GEOGRAPHICALGRIDSYSTEMS.CASSINI", "image/png", "PM_0_14"),
-  "ign-etatmajor": IGN("GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40", "image/png", "PM_6_15"),
+  "ign-cassini": IGN("BNF-IGNF_GEOGRAPHICALGRIDSYSTEMS.CASSINI", "image/png", "PM_6_14"),
+  "ign-etatmajor": IGN("GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40", "image/jpeg", "PM_6_15"),
   "ign-cadastre": IGN("CADASTRALPARCELS.PARCELLAIRE_EXPRESS", "image/png", "PM_0_19"),
 };
 
