@@ -1,7 +1,7 @@
 import { COLORS } from "@/src/constants/colors";
 import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
-import React, { useState } from "react";
+import React, { forwardRef, useImperativeHandle, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 export interface SessionMapProps {
@@ -11,14 +11,32 @@ export interface SessionMapProps {
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
   controlsTopOffset?: number;
+  controlsPlacement?: "floating" | "header";
+  mapType?: MapType;
 }
 
-export default function SessionMap({
+export interface SessionMapHandle {
+  centerOnUser: () => void;
+  fitTrace: () => void;
+}
+
+function SessionMap({
   events,
   userLocation,
   controlsTopOffset = 12,
-}: SessionMapProps) {
-  const [mapType, setMapType] = useState<MapType>("google");
+  mapType: controlledMapType,
+}: SessionMapProps, ref: React.Ref<SessionMapHandle>) {
+  const [internalMapType, setMapType] = useState<MapType>("google");
+  const mapType = controlledMapType ?? internalMapType;
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      centerOnUser: () => undefined,
+      fitTrace: () => undefined,
+    }),
+    [],
+  );
 
   return (
     <View style={styles.container}>
@@ -40,6 +58,8 @@ export default function SessionMap({
     </View>
   );
 }
+
+export default forwardRef(SessionMap);
 
 const styles = StyleSheet.create({
   container: {

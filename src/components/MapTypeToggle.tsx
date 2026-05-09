@@ -16,6 +16,7 @@ export type MapType =
 interface MapTypeToggleProps {
   currentType: MapType;
   onChange: (type: MapType) => void;
+  compact?: boolean;
 }
 
 const TYPES: { id: MapType; label: string }[] = [
@@ -29,18 +30,26 @@ const TYPES: { id: MapType; label: string }[] = [
   { id: "ign-cadastre",  label: "Cadastre" },
 ];
 
-export function MapTypeToggle({ currentType, onChange }: MapTypeToggleProps) {
+export function MapTypeToggle({
+  currentType,
+  onChange,
+  compact = false,
+}: MapTypeToggleProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <View style={styles.root}>
       <Pressable
-        style={[styles.trigger, open && styles.triggerOpen]}
+        style={[
+          styles.trigger,
+          compact && styles.triggerCompact,
+          open && styles.triggerOpen,
+        ]}
         onPress={() => setOpen((v) => !v)}
       >
         <Ionicons
           name={open ? "layers" : "layers-outline"}
-          size={20}
+          size={compact ? 18 : 20}
           color={open ? COLORS.accent : "#C8C4BA"}
         />
       </Pressable>
@@ -86,6 +95,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
+  },
+  triggerCompact: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
   },
   triggerOpen: {
     borderColor: "rgba(212, 175, 55, 0.55)",

@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -6,12 +7,14 @@ import {
     StatusBar,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import GlobalMap, { SessionTrace } from "@/src/components/GlobalMap";
 import PremiumHeader from "@/src/components/PremiumHeader";
+import { SessionDrawer } from "@/src/components/SessionDrawer";
 import { COLORS } from "@/src/constants/colors";
 import { Session, sessionService } from "@/src/services/sessionService";
 import { formatDistanceMeters } from "@/src/utils/format";
@@ -48,6 +51,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [visibleSessionIds, setVisibleSessionIds] = useState<string[] | null>(
     null,
   );
@@ -86,32 +90,36 @@ export default function MapScreen() {
     }, [loadSessions]),
   );
 
-  const traces = useMemo<SessionTrace[]>(
+  const visibleSessions = useMemo(
     () =>
-      sessions
-        .filter(
-          (session) =>
-            visibleSessionIds === null ||
-            visibleSessionIds.includes(session.id),
-        )
-        .map((session, index) => ({
-          sessionId: session.id,
-          points: session.gpsTrace,
-          events: session.events,
-          color: TRACE_COLORS[index % TRACE_COLORS.length],
-          active: session.status === "active" || session.status === "running",
-        })),
+      sessions.filter(
+        (session) =>
+          visibleSessionIds === null || visibleSessionIds.includes(session.id),
+      ),
     [sessions, visibleSessionIds],
   );
 
-  const totalDistance = sessions.reduce(
+  const traces = useMemo<SessionTrace[]>(
+    () =>
+      visibleSessions.map((session, index) => ({
+        sessionId: session.id,
+        points: session.gpsTrace,
+        events: session.events,
+        color: TRACE_COLORS[index % TRACE_COLORS.length],
+        active: session.status === "active" || session.status === "running",
+      })),
+    [visibleSessions],
+  );
+
+  const totalDistance = visibleSessions.reduce(
     (sum, session) => sum + session.distance,
     0,
   );
-  const totalEvents = sessions.reduce(
+  const totalEvents = visibleSessions.reduce(
     (sum, session) => sum + session.events.length,
     0,
   );
+  const visibleSessionsCount = visibleSessions.length;
 
   return (
     <View style={styles.container}>
@@ -134,10 +142,22 @@ export default function MapScreen() {
           { top: (StatusBar.currentHeight ?? insets.top) + 6 },
         ]}
       >
-        <PremiumHeader style={styles.headerBrand} />
+        <PremiumHeader
+          style={styles.headerBrand}
+          rightContent={
+            <TouchableOpacity
+              style={styles.sessionsButtonInline}
+              onPress={() => setDrawerOpen(true)}
+              activeOpacity={0.82}
+            >
+              <Ionicons name="list-outline" size={22} color={COLORS.accent} />
+            </TouchableOpacity>
+          }
+        />
         <View style={styles.headerStats}>
           <Text style={styles.statsText}>
-            {sessions.length} session{sessions.length !== 1 ? "s" : ""} ·{" "}
+            {visibleSessionsCount}/{sessions.length} session
+            {sessions.length !== 1 ? "s" : ""} ·{" "}
             {totalEvents === 0
               ? "Aucun marqueur"
               : `${totalEvents} marqueur${totalEvents > 1 ? "s" : ""}`}
@@ -147,6 +167,13 @@ export default function MapScreen() {
           </Text>
         </View>
       </View>
+
+      <SessionDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onSessionsToggle={setVisibleSessionIds}
+        selectedSessionIds={visibleSessionIds}
+      />
     </View>
   );
 }
@@ -191,6 +218,16 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 14,
     fontWeight: "800",
+  },
+  sessionsButtonInline: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.28)",
+    backgroundColor: "rgba(212, 175, 55, 0.10)",
   },
   map: {
     flex: 1,

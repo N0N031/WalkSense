@@ -1,9 +1,10 @@
 import ClassifySheet from "@/src/components/ClassifySheet";
 import PremiumHeader from "@/src/components/PremiumHeader";
 import { GpsIndicator } from "@/src/components/GpsIndicator";
+import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
 import SessionBottomSheet from "@/src/components/SessionBottomSheet";
 import SessionHud from "@/src/components/SessionHud";
-import SessionMap from "@/src/components/SessionMap";
+import SessionMap, { SessionMapHandle } from "@/src/components/SessionMap";
 import Toast, { useToast } from "@/src/components/Toast";
 import { COLORS } from "@/src/constants/colors";
 import { useGps } from "@/src/hooks/useGps";
@@ -16,7 +17,7 @@ import {
 } from "@/src/services/sessionService";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -79,6 +80,8 @@ export default function ExploreScreen() {
   const [startGpsAccuracy, setStartGpsAccuracy] = useState<number | null>(null);
   const [redFilter, setRedFilter] = useState(false);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
+  const [sessionMapType, setSessionMapType] = useState<MapType>("google");
+  const sessionMapRef = useRef<SessionMapHandle>(null);
   const { showToast } = useToast();
 
   const sessionId = session?.id;
@@ -93,7 +96,6 @@ export default function ExploreScreen() {
   const mapHeaderTop = statusTop + 6;
   const mapHeaderHeight = 62;
   const mapControlsTop = mapHeaderTop + mapHeaderHeight + 14;
-  const mapControlsBottom = mapControlsTop + 164;
   const mapToastTop = mapHeaderTop + mapHeaderHeight + 10;
 
   // ✅ EFFECT: Update coverage cells when GPS point arrives
@@ -401,15 +403,48 @@ export default function ExploreScreen() {
           { top: mapHeaderTop },
         ]}
       >
-        <PremiumHeader compact style={[styles.brandRow, { flex: 1 }]} />
+        <PremiumHeader
+          compact
+          style={[styles.brandRow, { flex: 1 }]}
+          rightContent={
+            <View style={styles.headerMapControls}>
+              <MapTypeToggle
+                currentType={sessionMapType}
+                onChange={setSessionMapType}
+                compact
+              />
+              <TouchableOpacity
+                style={[
+                  styles.headerMapControlButton,
+                  !userLocation && styles.headerMapControlDisabled,
+                ]}
+                onPress={() => sessionMapRef.current?.centerOnUser()}
+                disabled={!userLocation}
+              >
+                <Ionicons
+                  name="locate"
+                  size={18}
+                  color={userLocation ? COLORS.primary : COLORS.textTertiary}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerMapControlButton}
+                onPress={() => sessionMapRef.current?.fitTrace()}
+              >
+                <Ionicons name="expand-outline" size={18} color={COLORS.accent} />
+              </TouchableOpacity>
+            </View>
+          }
+        />
       </View>
       <View style={panelsCollapsed ? styles.mapAreaExpanded : styles.mapArea}>
         <SessionMap
+          ref={sessionMapRef}
           gpsTrace={gpsTrace}
           events={session.events ?? []}
           userLocation={userLocation}
           onEventPress={openClassify}
-          controlsTopOffset={mapControlsTop}
+          mapType={sessionMapType}
         />
       </View>
 
@@ -422,30 +457,32 @@ export default function ExploreScreen() {
         />
       ) : null}
 
-      <TouchableOpacity
-        style={[
-          styles.redFilterButton,
-          { top: mapControlsBottom + 12 },
-          redFilter && styles.redFilterButtonActive,
-        ]}
-        onPress={() => setRedFilter(!redFilter)}
-      >
-        <Ionicons name="filter" size={20} color={COLORS.accent} />
-      </TouchableOpacity>
+      <View style={[styles.mapQuickActions, { top: mapControlsTop }]}>
+        <TouchableOpacity
+          style={[
+            styles.mapQuickActionButton,
+            redFilter && styles.redFilterButtonActive,
+          ]}
+          onPress={() => setRedFilter(!redFilter)}
+        >
+          <Ionicons
+            name="filter"
+            size={20}
+            color={redFilter ? COLORS.background : COLORS.accent}
+          />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.collapseButton,
-          { top: mapControlsBottom + 68 },
-        ]}
-        onPress={() => setPanelsCollapsed((value) => !value)}
-      >
-        <Ionicons
-          name={panelsCollapsed ? "chevron-up" : "chevron-down"}
-          size={20}
-          color={COLORS.accent}
-        />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.mapQuickActionButton}
+          onPress={() => setPanelsCollapsed((value) => !value)}
+        >
+          <Ionicons
+            name={panelsCollapsed ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={COLORS.accent}
+          />
+        </TouchableOpacity>
+      </View>
 
       {!panelsCollapsed ? (
         <SessionBottomSheet
@@ -586,6 +623,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+  headerMapControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerMapControlButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "rgba(5, 12, 8, 0.88)",
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.34)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerMapControlDisabled: {
+    opacity: 0.42,
   },
   mapArea: {
     flex: 3,
@@ -750,11 +805,17 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingVertical: 12,
   },
-  redFilterButton: {
+  mapQuickActions: {
     position: "absolute",
-    right: 14,
-    width: 44,
-    height: 44,
+    right: 16,
+    zIndex: 46,
+    elevation: 15,
+    alignItems: "center",
+    gap: 10,
+  },
+  mapQuickActionButton: {
+    width: 48,
+    height: 48,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 10,
@@ -768,22 +829,6 @@ const styles = StyleSheet.create({
   },
   redFilterButtonActive: {
     backgroundColor: COLORS.accent,
-  },
-  collapseButton: {
-    position: "absolute",
-    right: 14,
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    backgroundColor: COLORS.glassStrong,
-    shadowColor: COLORS.orPremium,
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
   },
   compactDock: {
     position: "absolute",

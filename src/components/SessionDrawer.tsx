@@ -2,7 +2,7 @@ import { SessionList } from "@/src/components/SessionList";
 import { COLORS } from "@/src/constants/colors";
 import { sessionService, Session } from "@/src/services/sessionService";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -19,12 +19,14 @@ interface SessionDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSessionsToggle?: (sessionIds: string[]) => void;
+  selectedSessionIds?: string[] | null;
 }
 
 export function SessionDrawer({
   isOpen,
   onClose,
   onSessionsToggle,
+  selectedSessionIds,
 }: SessionDrawerProps) {
   const insets = useSafeAreaInsets();
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -32,6 +34,13 @@ export function SessionDrawer({
   const [visibleSessions, setVisibleSessions] = useState<Set<string>>(
     () => new Set(),
   );
+  const selectedSessionIdsRef = useRef<string[] | null | undefined>(
+    selectedSessionIds,
+  );
+
+  useEffect(() => {
+    selectedSessionIdsRef.current = selectedSessionIds;
+  }, [selectedSessionIds]);
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -54,9 +63,9 @@ export function SessionDrawer({
         if (!active) return;
         const sorted = data.sort((a, b) => b.startTime - a.startTime);
         const ids = sorted.map((session) => session.id);
+        const selectedIds = selectedSessionIdsRef.current ?? ids;
         setSessions(sorted);
-        setVisibleSessions(new Set(ids));
-        onSessionsToggle?.(ids);
+        setVisibleSessions(new Set(selectedIds));
       } finally {
         if (active) setLoading(false);
       }
@@ -66,7 +75,7 @@ export function SessionDrawer({
     return () => {
       active = false;
     };
-  }, [isOpen, onSessionsToggle]);
+  }, [isOpen]);
 
   const allIds = useMemo(
     () => sessions.map((session) => session.id),

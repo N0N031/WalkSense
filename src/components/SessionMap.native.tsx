@@ -1,17 +1,17 @@
-import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
+import { MapType } from "@/src/components/MapTypeToggle";
 import { COLORS } from "@/src/constants/colors";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
-import { Ionicons } from "@expo/vector-icons";
 import React, {
+    forwardRef,
     useCallback,
     useEffect,
+    useImperativeHandle,
     useMemo,
     useRef,
     useState,
 } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const IGN = (layer: string, fmt = "image/png", tms = "PM") =>
   `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=${tms}&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
@@ -42,21 +42,29 @@ export interface SessionMapProps {
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
-  controlsTopOffset?: number;
+  mapType?: MapType;
 }
 
-export default function SessionMap({
+export interface SessionMapHandle {
+  centerOnUser: () => void;
+  fitTrace: () => void;
+}
+
+function SessionMap(
+{
   gpsTrace,
   userLocation,
   events,
   onEventPress,
   historicalTraces = [],
-  controlsTopOffset,
-}: SessionMapProps) {
-  const [mapType, setMapType] = useState<MapType>("google");
+  mapType: controlledMapType,
+}: SessionMapProps,
+ref: React.Ref<SessionMapHandle>,
+) {
+  const [internalMapType] = useState<MapType>("google");
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
-  const insets = useSafeAreaInsets();
+  const mapType = controlledMapType ?? internalMapType;
 
   const tileUrlTemplate = TILES[mapType] ?? undefined;
   const zoomLimits = ZOOM_LIMITS[mapType] ?? { min: 0, max: 19 };
@@ -97,6 +105,15 @@ export default function SessionMap({
       animated: true,
     });
   }, [polyline, userLocation]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      centerOnUser,
+      fitTrace,
+    }),
+    [centerOnUser, fitTrace],
+  );
 
   useEffect(() => {
     if (!userLocation || centeredOnFirstLocationRef.current) return;
@@ -186,30 +203,6 @@ export default function SessionMap({
       </RNMapView>
       <View pointerEvents="none" style={styles.mapTint} />
 
-      <View
-        style={[
-          styles.mapControls,
-          { top: controlsTopOffset ?? insets.top + 72 },
-        ]}
-      >
-        <MapTypeToggle currentType={mapType} onChange={setMapType} />
-        <TouchableOpacity
-          style={[styles.mapControlButton, !userLocation && styles.buttonDisabled]}
-          onPress={centerOnUser}
-          disabled={!userLocation}
-        >
-          <Ionicons
-            name="locate"
-            size={21}
-            color={userLocation ? COLORS.primary : COLORS.textTertiary}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.mapControlButton} onPress={fitTrace}>
-          <Ionicons name="expand-outline" size={21} color={COLORS.accent} />
-        </TouchableOpacity>
-      </View>
-
-
       <Text style={styles.attribution}>
         {mapType === "satellite"
           ? "© Google"
@@ -230,6 +223,8 @@ export default function SessionMap({
     </View>
   );
 }
+
+export default forwardRef(SessionMap);
 
 const styles = StyleSheet.create({
   container: {
@@ -260,32 +255,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 12,
     fontWeight: "600",
-  },
-  mapControls: {
-    position: "absolute",
-    right: 16,
-    zIndex: 45,
-    elevation: 14,
-    alignItems: "center",
-    gap: 10,
-  },
-  mapControlButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: "rgba(5, 12, 8, 0.88)",
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.34)",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  buttonDisabled: {
-    opacity: 0.4,
   },
   attribution: {
     position: "absolute",
