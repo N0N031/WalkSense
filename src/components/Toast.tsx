@@ -6,9 +6,10 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Animated, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ToastType = "info" | "success" | "error";
@@ -17,6 +18,7 @@ interface ToastProps {
   message: string | null;
   type?: ToastType;
   onDone?: () => void;
+  topOffset?: number;
 }
 
 interface ToastState {
@@ -65,24 +67,66 @@ export default function Toast({
   message,
   type = "info",
   onDone,
+  topOffset,
 }: ToastProps) {
   const insets = useSafeAreaInsets();
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(-6)).current;
 
   useEffect(() => {
     if (!message) return;
-    const timer = setTimeout(() => onDone?.(), 3000);
+    opacity.setValue(0);
+    translateY.setValue(-6);
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: -6,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) onDone?.();
+      });
+    }, 1500);
     return () => clearTimeout(timer);
-  }, [message, onDone]);
+  }, [message, onDone, opacity, translateY]);
 
   if (!message) return null;
 
   const color = TOAST_COLORS[type];
 
   return (
-    <View style={[styles.toast, { top: insets.top + 12 }]}>
+    <Animated.View
+      style={[
+        styles.toast,
+        {
+          top: topOffset ?? insets.top + 10,
+          opacity,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
       <View style={[styles.icon, { backgroundColor: color }]} />
       <Text style={styles.text}>{message}</Text>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -95,19 +139,20 @@ const TOAST_COLORS: Record<ToastType, string> = {
 const styles = StyleSheet.create({
   toast: {
     position: "absolute",
-    left: 18,
-    right: 18,
+    alignSelf: "center",
+    maxWidth: 280,
+    minWidth: 170,
     zIndex: 200,
     elevation: 20,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    backgroundColor: "rgba(5, 12, 7, 0.95)",
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    backgroundColor: "rgba(5, 12, 8, 0.88)",
     borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.30)",
+    borderColor: "rgba(212, 175, 55, 0.25)",
   },
   icon: {
     width: 10,
@@ -117,7 +162,7 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     color: COLORS.text,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
   },
 });

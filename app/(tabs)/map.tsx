@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -7,14 +6,12 @@ import {
     StatusBar,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import GlobalMap, { SessionTrace } from "@/src/components/GlobalMap";
 import PremiumHeader from "@/src/components/PremiumHeader";
-import { SessionDrawer } from "@/src/components/SessionDrawer";
 import { COLORS } from "@/src/constants/colors";
 import { Session, sessionService } from "@/src/services/sessionService";
 import { formatDistanceMeters } from "@/src/utils/format";
@@ -51,7 +48,6 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [visibleSessionIds, setVisibleSessionIds] = useState<string[] | null>(
     null,
   );
@@ -124,7 +120,6 @@ export default function MapScreen() {
           traces={traces}
           userLocation={userLocation}
           controlsTopOffset={(StatusBar.currentHeight ?? insets.top) + 116}
-          controlsBottomOffset={insets.bottom + 96}
         />
         {loading ? (
           <View style={styles.loading}>
@@ -139,17 +134,7 @@ export default function MapScreen() {
           { top: (StatusBar.currentHeight ?? insets.top) + 6 },
         ]}
       >
-        <PremiumHeader
-          style={styles.headerBrand}
-          rightContent={
-            <TouchableOpacity
-              style={styles.drawerButtonInline}
-              onPress={() => setDrawerOpen(true)}
-            >
-              <Ionicons name="layers-outline" size={22} color={COLORS.accent} />
-            </TouchableOpacity>
-          }
-        />
+        <PremiumHeader style={styles.headerBrand} />
         <View style={styles.headerStats}>
           <Text style={styles.statsText}>
             {sessions.length} session{sessions.length !== 1 ? "s" : ""} ·{" "}
@@ -162,12 +147,6 @@ export default function MapScreen() {
           </Text>
         </View>
       </View>
-
-      <SessionDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onSessionsToggle={setVisibleSessionIds}
-      />
     </View>
   );
 }
@@ -212,16 +191,6 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 14,
     fontWeight: "800",
-  },
-  drawerButtonInline: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.28)",
-    backgroundColor: "rgba(212, 175, 55, 0.10)",
   },
   map: {
     flex: 1,

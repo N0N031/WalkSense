@@ -41,14 +41,12 @@ export interface GlobalMapProps {
   traces: SessionTrace[];
   userLocation: { latitude: number; longitude: number } | null;
   controlsTopOffset?: number;
-  controlsBottomOffset?: number;
 }
 
 export default function GlobalMap({
   traces,
   userLocation,
   controlsTopOffset = 10,
-  controlsBottomOffset = 16,
 }: GlobalMapProps) {
   const [mapType, setMapType] = useState<MapType>("satellite");
   const mapRef = useRef<RNMapView>(null);
@@ -190,30 +188,22 @@ export default function GlobalMap({
       </RNMapView>
       <View pointerEvents="none" style={styles.mapTint} />
 
-      <TouchableOpacity
-        style={[styles.fitButton, { bottom: controlsBottomOffset }]}
-        onPress={fitAll}
-      >
-        <Ionicons name="expand-outline" size={20} color={COLORS.text} />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[
-          styles.locateButton,
-          { bottom: controlsBottomOffset + 52 },
-          !userLocation && styles.buttonDisabled,
-        ]}
-        onPress={centerOnUser}
-      >
-        <Ionicons
-          name="locate"
-          size={20}
-          color={userLocation ? COLORS.primary : COLORS.textTertiary}
-        />
-      </TouchableOpacity>
-
-      <View style={[styles.layerToggle, { top: controlsTopOffset }]}>
+      <View style={[styles.mapControls, { top: controlsTopOffset }]}>
         <MapTypeToggle currentType={mapType} onChange={setMapType} />
+        <TouchableOpacity
+          style={[styles.mapControlButton, !userLocation && styles.buttonDisabled]}
+          onPress={centerOnUser}
+          disabled={!userLocation}
+        >
+          <Ionicons
+            name="locate"
+            size={21}
+            color={userLocation ? COLORS.primary : COLORS.textTertiary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.mapControlButton} onPress={fitAll}>
+          <Ionicons name="expand-outline" size={21} color={COLORS.accent} />
+        </TouchableOpacity>
       </View>
 
       <Text
@@ -266,53 +256,32 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "white",
   },
-  fitButton: {
+  mapControls: {
     position: "absolute",
-    left: 10,
-    width: 40,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: COLORS.glassStrong,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    justifyContent: "center",
+    right: 16,
+    zIndex: 45,
+    elevation: 14,
     alignItems: "center",
-    elevation: 6,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
+    gap: 10,
   },
-  locateButton: {
-    position: "absolute",
-    left: 10,
-    width: 40,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: COLORS.glassStrong,
+  mapControlButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: "rgba(5, 12, 8, 0.88)",
     borderWidth: 1,
-    borderColor: COLORS.accent,
+    borderColor: "rgba(212, 175, 55, 0.34)",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 6,
-    shadowColor: COLORS.accent,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
+    elevation: 6,
   },
   buttonDisabled: {
     opacity: 0.4,
   },
-  layerToggle: {
-    position: "absolute",
-    right: 10,
-  },
-  layerToggleActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  layerText: { fontSize: 12, fontWeight: "600", color: COLORS.text },
-  layerTextActive: { color: "white" },
   attribution: {
     position: "absolute",
     bottom: 4,

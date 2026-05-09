@@ -10,11 +10,13 @@ export interface SessionMapProps {
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
+  controlsTopOffset?: number;
 }
 
 export default function SessionMap({
   events,
   userLocation,
+  controlsTopOffset = 12,
 }: SessionMapProps) {
   const [mapType, setMapType] = useState<MapType>("google");
 
@@ -32,7 +34,7 @@ export default function SessionMap({
       {events.length > 0 && (
         <Text style={styles.count}>{events.length} marqueur(s)</Text>
       )}
-      <View style={styles.toggle}>
+      <View style={[styles.toggle, { top: controlsTopOffset }]}>
         <MapTypeToggle currentType={mapType} onChange={setMapType} />
       </View>
     </View>
@@ -70,8 +72,6 @@ const styles = StyleSheet.create({
   },
   toggle: {
     position: "absolute",
-    left: 12,
-    right: 12,
-    bottom: 12,
+    right: 16,
   },
 });

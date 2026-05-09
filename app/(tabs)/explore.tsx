@@ -195,6 +195,7 @@ export default function ExploreScreen() {
 
   // ✅ Handle add marker
   const handleAddMarker = useCallback(async () => {
+    setToast(null);
     if (!session?.id || !location) {
       setToast("GPS non disponible");
       return;
@@ -281,6 +282,7 @@ export default function ExploreScreen() {
         });
       return () => {
         active = false;
+        setToast(null);
       };
     }, [loadCurrentSession, startTimer, startTracking]),
   );
@@ -384,6 +386,7 @@ export default function ExploreScreen() {
           events={session.events ?? []}
           userLocation={userLocation}
           onEventPress={openClassify}
+          controlsTopOffset={(StatusBar.currentHeight ?? insets.top) + 82}
         />
       </View>
 
@@ -506,7 +509,11 @@ export default function ExploreScreen() {
         onClassify={handleClassify}
         onRefill={handleRefill}
       />
-      <Toast message={toast} onDone={() => setToast(null)} />
+      <Toast
+        message={toast}
+        onDone={() => setToast(null)}
+        topOffset={(StatusBar.currentHeight ?? insets.top) + 78}
+      />
       {redFilter ? <View style={styles.redFilterOverlay} /> : null}
     </View>
   );

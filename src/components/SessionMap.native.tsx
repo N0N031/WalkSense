@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const IGN = (layer: string, fmt = "image/png", tms = "PM") =>
   `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=${tms}&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
@@ -41,6 +42,7 @@ export interface SessionMapProps {
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
+  controlsTopOffset?: number;
 }
 
 export default function SessionMap({
@@ -49,10 +51,12 @@ export default function SessionMap({
   events,
   onEventPress,
   historicalTraces = [],
+  controlsTopOffset,
 }: SessionMapProps) {
   const [mapType, setMapType] = useState<MapType>("google");
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
+  const insets = useSafeAreaInsets();
 
   const tileUrlTemplate = TILES[mapType] ?? undefined;
   const zoomLimits = ZOOM_LIMITS[mapType] ?? { min: 0, max: 19 };
@@ -83,6 +87,16 @@ export default function SessionMap({
       400,
     );
   }, [userLocation]);
+
+  const fitTrace = useCallback(() => {
+    const coords = polyline.length > 0 ? [...polyline] : [];
+    if (userLocation) coords.push(userLocation);
+    if (coords.length === 0) return;
+    mapRef.current?.fitToCoordinates(coords, {
+      edgePadding: { top: 80, right: 72, bottom: 80, left: 48 },
+      animated: true,
+    });
+  }, [polyline, userLocation]);
 
   useEffect(() => {
     if (!userLocation || centeredOnFirstLocationRef.current) return;
@@ -172,22 +186,27 @@ export default function SessionMap({
       </RNMapView>
       <View pointerEvents="none" style={styles.mapTint} />
 
-      <TouchableOpacity
+      <View
         style={[
-          styles.centerButton,
-          !userLocation && styles.centerButtonDisabled,
+          styles.mapControls,
+          { top: controlsTopOffset ?? insets.top + 72 },
         ]}
-        onPress={centerOnUser}
       >
-        <Ionicons
-          name="locate"
-          size={20}
-          color={userLocation ? COLORS.primary : COLORS.textTertiary}
-        />
-      </TouchableOpacity>
-
-      <View style={styles.mapTypeToggle}>
         <MapTypeToggle currentType={mapType} onChange={setMapType} />
+        <TouchableOpacity
+          style={[styles.mapControlButton, !userLocation && styles.buttonDisabled]}
+          onPress={centerOnUser}
+          disabled={!userLocation}
+        >
+          <Ionicons
+            name="locate"
+            size={21}
+            color={userLocation ? COLORS.primary : COLORS.textTertiary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.mapControlButton} onPress={fitTrace}>
+          <Ionicons name="expand-outline" size={21} color={COLORS.accent} />
+        </TouchableOpacity>
       </View>
 
 
@@ -242,26 +261,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-  centerButton: {
+  mapControls: {
     position: "absolute",
-    bottom: 20,
-    left: 10,
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: COLORS.glassStrong,
+    right: 16,
+    zIndex: 45,
+    elevation: 14,
+    alignItems: "center",
+    gap: 10,
+  },
+  mapControlButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: "rgba(5, 12, 8, 0.88)",
     borderWidth: 1,
-    borderColor: COLORS.accent,
+    borderColor: "rgba(212, 175, 55, 0.34)",
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  centerButtonDisabled: {
+  buttonDisabled: {
     opacity: 0.4,
-  },
-  mapTypeToggle: {
-    position: "absolute",
-    right: 10,
-    top: 10,
   },
   attribution: {
     position: "absolute",
