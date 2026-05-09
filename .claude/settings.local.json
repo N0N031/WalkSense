@@ -12,7 +12,16 @@
       "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" auth status)",
       "Bash(find /c/Users/arnau/Downloads -name \"walksense-mark*\" 2>/dev/null | head -10; find /c/Users/arnau/Desktop -name \"walksense-mark*\" 2>/dev/null | head -10)",
       "Read(//c/Users/arnau/Downloads/**)",
-      "Read(//c/Users/arnau/Desktop/**)"
+      "Read(//c/Users/arnau/Desktop/**)",
+      "Bash(cd /home/user/WalkSense && npx expo start --tunnel 2>&1 &)",
+      "Read(//home/user/**)",
+      "Bash(npm install *)",
+      "Bash(curl -s http://localhost:8081/manifest)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('hostUri',''\\)\\)\")",
+      "Bash(curl -s \"http://localhost:8081\")",
+      "Bash(curl -s http://127.0.0.1:4040/api/tunnels)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(t['public_url']\\) for t in d.get\\('tunnels',[]\\)]\")",
+      "Bash(git -C \"c:\\\\Users\\\\arnau\\\\RockSense\" log --oneline -3)"
     ]
   }
 }

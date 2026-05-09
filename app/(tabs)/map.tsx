@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import GlobalMap, { SessionTrace } from "@/src/components/GlobalMap";
+import PremiumHeader from "@/src/components/PremiumHeader";
 import { SessionDrawer } from "@/src/components/SessionDrawer";
 import { COLORS } from "@/src/constants/colors";
 import { Session, sessionService } from "@/src/services/sessionService";
@@ -122,7 +123,7 @@ export default function MapScreen() {
         <GlobalMap
           traces={traces}
           userLocation={userLocation}
-          controlsTopOffset={insets.top + (StatusBar.currentHeight ?? 0) + 82}
+          controlsTopOffset={insets.top + (StatusBar.currentHeight ?? 0) + 130}
           controlsBottomOffset={insets.bottom + 96}
         />
         {loading ? (
@@ -138,29 +139,29 @@ export default function MapScreen() {
           { top: (StatusBar.currentHeight ?? insets.top) + 8 },
         ]}
       >
-        <View style={styles.headerCopy}>
-          <Text style={styles.title}>Carte</Text>
-          <Text style={styles.subtitle}>
-            {sessions.length} sessions ·{" "}
+        <PremiumHeader
+          style={styles.headerBrand}
+          rightContent={
+            <TouchableOpacity
+              style={styles.drawerButtonInline}
+              onPress={() => setDrawerOpen(true)}
+            >
+              <Ionicons name="layers-outline" size={22} color={COLORS.accent} />
+            </TouchableOpacity>
+          }
+        />
+        <View style={styles.headerStats}>
+          <Text style={styles.statsText}>
+            {sessions.length} session{sessions.length !== 1 ? "s" : ""} ·{" "}
             {totalEvents === 0
-              ? "Aucun evenement"
+              ? "Aucun marqueur"
               : `${totalEvents} marqueur${totalEvents > 1 ? "s" : ""}`}
           </Text>
+          <Text style={styles.distance}>
+            {formatDistanceMeters(totalDistance)}
+          </Text>
         </View>
-        <Text style={styles.distance}>
-          {formatDistanceMeters(totalDistance)}
-        </Text>
       </View>
-
-      <TouchableOpacity
-        style={[
-          styles.drawerButton,
-          { bottom: Math.max(insets.bottom, 8) + 96 },
-        ]}
-        onPress={() => setDrawerOpen(true)}
-      >
-        <Ionicons name="list" size={22} color={COLORS.background} />
-      </TouchableOpacity>
 
       <SessionDrawer
         isOpen={drawerOpen}
@@ -178,44 +179,49 @@ const styles = StyleSheet.create({
   },
   header: {
     position: "absolute",
-    left: 24,
-    right: 24,
-    maxHeight: 92,
+    left: "3%",
+    right: "3%",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.22)",
+    backgroundColor: "rgba(4, 10, 6, 0.82)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.38,
+    shadowRadius: 22,
+    elevation: 12,
+    gap: 8,
+  },
+  headerBrand: {
+    width: "100%",
+  },
+  headerStats: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: "rgba(5,8,5,0.9)",
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 18,
+    paddingHorizontal: 2,
   },
-  title: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: "800",
-  },
-  subtitle: {
+  statsText: {
     color: COLORS.textSecondary,
     fontSize: 12,
-    marginTop: 2,
+    fontWeight: "600",
   },
   distance: {
     color: COLORS.accent,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "800",
-    textAlign: "right",
-    minWidth: 72,
   },
-  headerCopy: {
-    flex: 1,
-    paddingRight: 12,
+  drawerButtonInline: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.28)",
+    backgroundColor: "rgba(212, 175, 55, 0.10)",
   },
   map: {
     flex: 1,
@@ -226,17 +232,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(15, 15, 15, 0.3)",
-  },
-  drawerButton: {
-    position: "absolute",
-    right: 22,
-    width: 50,
-    height: 50,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    backgroundColor: COLORS.accent,
   },
 });

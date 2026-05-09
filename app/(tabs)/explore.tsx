@@ -1,5 +1,5 @@
-import BrandLogo from "@/src/components/BrandLogo";
 import ClassifySheet from "@/src/components/ClassifySheet";
+import PremiumHeader from "@/src/components/PremiumHeader";
 import { GpsIndicator } from "@/src/components/GpsIndicator";
 import SessionBottomSheet from "@/src/components/SessionBottomSheet";
 import SessionHud from "@/src/components/SessionHud";
@@ -306,35 +306,13 @@ export default function ExploreScreen() {
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.emptyBrand}>
-              <BrandLogo compact />
-              <View style={styles.emptyBrandCopy}>
-                <Text
-                  style={styles.emptyBrandTitle}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.78}
-                >
-                  WalkSense
-                </Text>
-                <Text
-                  style={styles.emptyBrandSubtitle}
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.75}
-                >
-                  TERRAIN TRACKING
-                </Text>
-              </View>
-            </View>
+            <PremiumHeader fadeIn style={styles.emptyBrand} />
 
             <View style={styles.emptyDivider}>
               <View style={styles.emptyDividerLine} />
               <View style={styles.emptyDividerDot} />
               <View style={styles.emptyDividerLine} />
             </View>
-
-            <BrandLogo size="large" />
 
             <View style={styles.emptyCopyBlock}>
               <Text
@@ -395,13 +373,7 @@ export default function ExploreScreen() {
           { top: insets.top + (StatusBar.currentHeight ?? 0) + 8 },
         ]}
       >
-        <View style={styles.brandRow}>
-          <BrandLogo compact />
-          <View>
-            <Text style={styles.brandTitle}>WalkSense</Text>
-            <Text style={styles.brandSubtitle}>Tracking & Exploration</Text>
-          </View>
-        </View>
+        <PremiumHeader style={[styles.brandRow, { flex: 1 }]} />
         <View style={styles.mapModeButton}>
           <Ionicons name="map-outline" size={22} color={COLORS.accent} />
           <Text style={styles.mapModeText}>Carte</Text>
@@ -574,32 +546,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    backgroundColor: COLORS.glass,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: "rgba(4, 10, 6, 0.82)",
     borderWidth: 1,
-    borderColor: "rgba(212,175,55,0.10)",
+    borderColor: "rgba(212,175,55,0.18)",
     shadowColor: COLORS.orPremium,
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 6,
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+    elevation: 8,
   },
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  brandTitle: {
-    color: COLORS.accent,
-    fontSize: 20,
-    fontWeight: "800",
-  },
-  brandSubtitle: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-    marginTop: 2,
+    gap: 10,
   },
   mapModeButton: {
     height: 40,
@@ -645,27 +606,7 @@ const styles = StyleSheet.create({
   },
   emptyBrand: {
     width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
     paddingHorizontal: 8,
-  },
-  emptyBrandCopy: {
-    flexShrink: 1,
-    maxWidth: 260,
-  },
-  emptyBrandTitle: {
-    color: COLORS.accent,
-    fontSize: 30,
-    fontWeight: "900",
-  },
-  emptyBrandSubtitle: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 4,
-    marginTop: 4,
   },
   emptyDivider: {
     width: "62%",
