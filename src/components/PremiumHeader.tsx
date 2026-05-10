@@ -30,15 +30,18 @@ export default function PremiumHeader({
   const opacity = useRef(new Animated.Value(fadeIn ? 0 : 1)).current;
 
   useEffect(() => {
-    if (fadeIn) {
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 700,
-        delay: 80,
-        useNativeDriver: true,
-      }).start();
+    if (!fadeIn) {
+      opacity.setValue(1);
+      return;
     }
-  }, []);
+
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 700,
+      delay: 80,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeIn, opacity]);
 
   const logoSize = compact ? 40 : 52;
 

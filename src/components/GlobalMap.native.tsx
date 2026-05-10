@@ -4,7 +4,7 @@ import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
+import RNMapView, { Marker, Polyline, PROVIDER_GOOGLE, UrlTile } from "react-native-maps";
 
 const IGN = (layer: string, fmt = "image/png", tms = "PM") =>
   `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=${tms}&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
@@ -48,7 +48,7 @@ export default function GlobalMap({
   userLocation,
   controlsTopOffset = 10,
 }: GlobalMapProps) {
-  const [mapType, setMapType] = useState<MapType>("osm");
+  const [mapType, setMapType] = useState<MapType>("google");
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
 
@@ -116,16 +116,17 @@ export default function GlobalMap({
     <View style={styles.container}>
       <RNMapView
         ref={mapRef}
-        style={{ flex: 1 }}
+        provider={PROVIDER_GOOGLE}
+        style={StyleSheet.absoluteFillObject}
         mapType={nativeMapType as any}
         initialRegion={initialRegion}
         minZoomLevel={zoomLimits.min}
         maxZoomLevel={zoomLimits.max}
-        showsUserLocation={false}
+        showsUserLocation={true}
         showsMyLocationButton={false}
         loadingEnabled
-        loadingBackgroundColor="#050505"
-        loadingIndicatorColor="#d4af37"
+        loadingBackgroundColor="#050805"
+        loadingIndicatorColor="#D4AF37"
         onMapReady={() => {
           if (userLocation) centerOnUser();
           else fitAll();

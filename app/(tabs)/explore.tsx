@@ -80,7 +80,7 @@ export default function ExploreScreen() {
   const [startGpsAccuracy, setStartGpsAccuracy] = useState<number | null>(null);
   const [redFilter, setRedFilter] = useState(false);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
-  const [sessionMapType, setSessionMapType] = useState<MapType>("osm");
+  const [sessionMapType, setSessionMapType] = useState<MapType>("google");
   const sessionMapRef = useRef<SessionMapHandle>(null);
   const { showToast } = useToast();
 

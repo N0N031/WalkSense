@@ -4,5 +4,7 @@
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
   },
-  "claudeCode.allowDangerouslySkipPermissions": true
+  "claudeCode.allowDangerouslySkipPermissions": true,
+  "continue.enableConsole": true,
+  "continue.enableQuickActions": true
 }

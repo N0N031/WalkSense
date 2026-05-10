@@ -11,7 +11,7 @@ import React, {
     useState,
 } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import RNMapView, { Marker, Polyline, UrlTile } from "react-native-maps";
+import RNMapView, { Marker, Polyline, PROVIDER_GOOGLE, UrlTile } from "react-native-maps";
 
 const IGN = (layer: string, fmt = "image/png", tms = "PM") =>
   `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=${tms}&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
@@ -61,7 +61,7 @@ function SessionMap(
 }: SessionMapProps,
 ref: React.Ref<SessionMapHandle>,
 ) {
-  const [internalMapType] = useState<MapType>("osm");
+  const [internalMapType] = useState<MapType>("google");
   const mapRef = useRef<RNMapView>(null);
   const centeredOnFirstLocationRef = useRef(false);
   const mapType = controlledMapType ?? internalMapType;
@@ -125,17 +125,18 @@ ref: React.Ref<SessionMapHandle>,
     <View style={styles.container}>
       <RNMapView
         ref={mapRef}
-        style={{ flex: 1 }}
+        provider={PROVIDER_GOOGLE}
+        style={StyleSheet.absoluteFillObject}
         mapType={nativeMapType as any}
         initialRegion={region}
         minZoomLevel={zoomLimits.min}
         maxZoomLevel={zoomLimits.max}
-        showsUserLocation={false}
+        showsUserLocation={true}
         showsMyLocationButton={false}
         moveOnMarkerPress={false}
         loadingEnabled
-        loadingBackgroundColor="#050505"
-        loadingIndicatorColor="#d4af37"
+        loadingBackgroundColor="#050805"
+        loadingIndicatorColor="#D4AF37"
       >
         {tileUrlTemplate ? (
           <UrlTile

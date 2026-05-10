@@ -1,3 +1,16 @@
+const googleMapsAndroidApiKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY;
+
+if (
+  process.env.EAS_BUILD === "true" &&
+  (!googleMapsAndroidApiKey ||
+    googleMapsAndroidApiKey === "TA_CLE_GOOGLE_MAPS" ||
+    !googleMapsAndroidApiKey.startsWith("AIza"))
+) {
+  throw new Error(
+    "GOOGLE_MAPS_ANDROID_API_KEY must be set to a valid Android Google Maps API key for EAS builds.",
+  );
+}
+
 export default {
   expo: {
     name: "WalkSense",
@@ -27,7 +40,7 @@ export default {
       package: "com.anonymous.WalkSense",
       config: {
         googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_ANDROID_API_KEY,
+          apiKey: googleMapsAndroidApiKey,
         },
       },
       adaptiveIcon: {
