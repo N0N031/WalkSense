@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
     Alert,
     FlatList,
+    Image,
     ImageBackground,
     Modal,
     Pressable,
@@ -46,6 +47,7 @@ export default function HomeScreen() {
   } | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
+  const [showPhotoGallery, setShowPhotoGallery] = useState(false);
 
   /**
    * Charger les sessions depuis le service
@@ -254,6 +256,12 @@ export default function HomeScreen() {
     (sum, session) => sum + session.events.length,
     0,
   );
+  const photoItems = sessions.flatMap((session) =>
+    session.events
+      .filter((event) => Boolean(event.photoUri))
+      .map((event) => ({ session, event })),
+  );
+  const totalPhotos = photoItems.length;
 
   const renderExportPreview = () => (
     <Modal
@@ -298,6 +306,73 @@ export default function HomeScreen() {
             {exportPreview?.content}
           </Text>
         </ScrollView>
+      </View>
+    </Modal>
+  );
+
+  const renderPhotoGallery = () => (
+    <Modal
+      visible={showPhotoGallery}
+      animationType="slide"
+      onRequestClose={() => setShowPhotoGallery(false)}
+    >
+      <View style={[styles.galleryContainer, { paddingTop: insets.top }]}>
+        <View style={styles.galleryHeader}>
+          <TouchableOpacity
+            style={styles.detailsBackButton}
+            onPress={() => setShowPhotoGallery(false)}
+          >
+            <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
+            <Text style={styles.detailsBackText}>Sessions</Text>
+          </TouchableOpacity>
+          <Text style={styles.galleryCount}>
+            {totalPhotos} photo{totalPhotos > 1 ? "s" : ""}
+          </Text>
+        </View>
+
+        {photoItems.length === 0 ? (
+          <View style={styles.galleryEmpty}>
+            <Ionicons name="images-outline" size={42} color={COLORS.textTertiary} />
+            <Text style={styles.galleryEmptyTitle}>Aucune photo</Text>
+            <Text style={styles.galleryEmptyText}>
+              Ajoutez une photo graduee depuis une trouvaille.
+            </Text>
+          </View>
+        ) : (
+          <ScrollView
+            style={styles.galleryBody}
+            contentContainerStyle={[
+              styles.galleryGrid,
+              { paddingBottom: Math.max(insets.bottom, 24) },
+            ]}
+          >
+            {photoItems.map(({ session, event }) => (
+              <View key={`${session.id}-${event.id}`} style={styles.photoCard}>
+                <Image
+                  source={{ uri: event.photoUri }}
+                  style={styles.photoCardImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.photoCardMeta}>
+                  <Text style={styles.photoCardTitle} numberOfLines={1}>
+                    {event.classification || "Trouvaille"}
+                  </Text>
+                  <Text style={styles.photoCardText} numberOfLines={1}>
+                    {session.commune?.trim() || "Session sans lieu"}
+                  </Text>
+                  <Text style={styles.photoCardText}>
+                    {formatDate(event.timestamp)}
+                  </Text>
+                  {event.photoScale && event.photoScale !== "none" ? (
+                    <Text style={styles.photoCardScale}>
+                      Echelle : {formatPhotoScale(event.photoScale)}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        )}
       </View>
     </Modal>
   );
@@ -519,6 +594,13 @@ export default function HomeScreen() {
                 </Text>
               </View>
 
+              <View style={styles.detailsRow}>
+                <Text style={styles.detailsLabel}>Photos :</Text>
+                <Text style={styles.detailsValue}>
+                  {selectedSession.events.filter((event) => event.photoUri).length}
+                </Text>
+              </View>
+
               {getRefillStats(selectedSession).total > 0 ? (
                 <View style={styles.detailsRow}>
                   <Text style={styles.detailsLabel}>Rebouchage :</Text>
@@ -610,6 +692,20 @@ export default function HomeScreen() {
                         Classification : {event.classification} ✓
                       </Text>
                     )}
+
+                    {event.photoUri ? (
+                      <Image
+                        source={{ uri: event.photoUri }}
+                        style={styles.eventPhoto}
+                        resizeMode="cover"
+                      />
+                    ) : null}
+
+                    {event.photoScale && event.photoScale !== "none" ? (
+                      <Text style={styles.eventItemPhotoScale}>
+                        Photo graduee : {formatPhotoScale(event.photoScale)}
+                      </Text>
+                    ) : null}
 
                     {event.classification ? (
                       <View style={styles.refillStatusRow}>
@@ -718,16 +814,32 @@ export default function HomeScreen() {
           <PremiumHeader
             style={styles.header}
             rightContent={
-              <TouchableOpacity
-                style={styles.settingsButton}
-                onPress={toggleSelectionMode}
-              >
-                <Ionicons
-                  name={selectionMode ? "close" : "checkbox-outline"}
-                  size={20}
-                  color={COLORS.text}
-                />
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.settingsButton,
+                    totalPhotos === 0 && styles.headerButtonDisabled,
+                  ]}
+                  onPress={() => setShowPhotoGallery(true)}
+                  disabled={totalPhotos === 0}
+                >
+                  <Ionicons
+                    name="images-outline"
+                    size={20}
+                    color={totalPhotos === 0 ? COLORS.textTertiary : COLORS.accent}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.settingsButton}
+                  onPress={toggleSelectionMode}
+                >
+                  <Ionicons
+                    name={selectionMode ? "close" : "checkbox-outline"}
+                    size={20}
+                    color={COLORS.text}
+                  />
+                </TouchableOpacity>
+              </View>
             }
           />
           <View style={styles.statsGrid}>
@@ -819,9 +931,23 @@ export default function HomeScreen() {
           />
         )}
         {renderExportPreview()}
+        {renderPhotoGallery()}
       </View>
     </PremiumBackground>
   );
+}
+
+function formatPhotoScale(scale: NonNullable<Session["events"][number]["photoScale"]>) {
+  switch (scale) {
+    case "coin":
+      return "piece";
+    case "rule":
+      return "regle";
+    case "hand":
+      return "main";
+    default:
+      return "aucune";
+  }
 }
 
 function buildMultiSessionGpx(sessions: Session[]): string {
@@ -952,6 +1078,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.glass,
+  },
+  headerActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  headerButtonDisabled: {
+    opacity: 0.42,
   },
 
   selectionToolbar: {
@@ -1357,6 +1490,21 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     fontStyle: "italic",
   },
+  eventPhoto: {
+    width: "100%",
+    height: 180,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.28)",
+    backgroundColor: COLORS.glassStrong,
+    marginBottom: 8,
+  },
+  eventItemPhotoScale: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
 
   coordsRow: {
     flexDirection: "row",
@@ -1490,5 +1638,80 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 8,
     padding: 12,
+  },
+  galleryContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  galleryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  galleryCount: {
+    color: COLORS.accent,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  galleryBody: {
+    flex: 1,
+  },
+  galleryGrid: {
+    padding: 14,
+    gap: 12,
+  },
+  galleryEmpty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 28,
+  },
+  galleryEmptyTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  galleryEmptyText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  photoCard: {
+    overflow: "hidden",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.22)",
+    backgroundColor: COLORS.glassStrong,
+  },
+  photoCardImage: {
+    width: "100%",
+    aspectRatio: 1.35,
+    backgroundColor: COLORS.noirProfond,
+  },
+  photoCardMeta: {
+    padding: 12,
+    gap: 4,
+  },
+  photoCardTitle: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  photoCardText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  photoCardScale: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 2,
   },
 });

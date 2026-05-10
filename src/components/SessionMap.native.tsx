@@ -11,7 +11,13 @@ import React, {
     useState,
 } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import RNMapView, { Marker, Polyline, PROVIDER_GOOGLE, UrlTile } from "react-native-maps";
+import RNMapView, {
+  Circle,
+  Marker,
+  Polyline,
+  PROVIDER_GOOGLE,
+  UrlTile,
+} from "react-native-maps";
 
 const IGN = (layer: string, fmt = "image/png", tms = "PM") =>
   `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=${tms}&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
@@ -38,7 +44,12 @@ const ZOOM_LIMITS: Record<string, { min: number; max: number }> = {
 
 export interface SessionMapProps {
   gpsTrace: GpsPoint[];
-  userLocation: { latitude: number; longitude: number } | null;
+  userLocation: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    heading?: number;
+  } | null;
   events: MarkedEvent[];
   onEventPress: (event: MarkedEvent) => void;
   historicalTraces?: GpsPoint[][];
@@ -131,7 +142,7 @@ ref: React.Ref<SessionMapHandle>,
         initialRegion={region}
         minZoomLevel={zoomLimits.min}
         maxZoomLevel={zoomLimits.max}
-        showsUserLocation={true}
+        showsUserLocation={false}
         showsMyLocationButton={false}
         moveOnMarkerPress={false}
         loadingEnabled
@@ -173,8 +184,25 @@ ref: React.Ref<SessionMapHandle>,
         )}
 
         {userLocation && (
-          <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={styles.userDot} />
+          <Circle
+            center={userLocation}
+            radius={Math.max(6, Math.min(userLocation.accuracy ?? 12, 60))}
+            strokeColor="rgba(34, 211, 238, 0.42)"
+            fillColor="rgba(34, 211, 238, 0.12)"
+            zIndex={8}
+          />
+        )}
+
+        {userLocation && (
+          <Marker
+            coordinate={userLocation}
+            anchor={{ x: 0.5, y: 0.5 }}
+            zIndex={20}
+          >
+            <View style={styles.userMarker}>
+              <View style={styles.userPulse} />
+              <View style={styles.userDot} />
+            </View>
           </Marker>
         )}
 
@@ -241,9 +269,24 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: COLORS.info,
-    borderWidth: 2,
+    backgroundColor: "#22D3EE",
+    borderWidth: 3,
     borderColor: "white",
+  },
+  userMarker: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  userPulse: {
+    position: "absolute",
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(34, 211, 238, 0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(34, 211, 238, 0.55)",
   },
   marker: {
     width: 32,

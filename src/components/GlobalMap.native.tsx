@@ -4,7 +4,13 @@ import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import RNMapView, { Marker, Polyline, PROVIDER_GOOGLE, UrlTile } from "react-native-maps";
+import RNMapView, {
+  Circle,
+  Marker,
+  Polyline,
+  PROVIDER_GOOGLE,
+  UrlTile,
+} from "react-native-maps";
 
 const IGN = (layer: string, fmt = "image/png", tms = "PM") =>
   `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&FORMAT=${fmt}&TILEMATRIXSET=${tms}&TILEMATRIX={z}&TILECOL={x}&TILEROW={y}`;
@@ -29,6 +35,28 @@ const ZOOM_LIMITS: Record<string, { min: number; max: number }> = {
   "ign-cadastre":  { min: 0, max: 19 },
 };
 
+function colorWithAlpha(hexColor: string, alpha: number): string {
+  const hex = hexColor.replace("#", "");
+  if (hex.length !== 6) return hexColor;
+
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getTraceStyle(trace: SessionTrace, index: number) {
+  if (trace.active) {
+    return { opacity: 0.98, width: 5, zIndex: 18 };
+  }
+
+  if (index < 3) {
+    return { opacity: 0.78, width: 4, zIndex: 12 };
+  }
+
+  return { opacity: 0.44, width: 3, zIndex: 9 };
+}
+
 export interface SessionTrace {
   sessionId: string;
   points: GpsPoint[];
@@ -39,7 +67,12 @@ export interface SessionTrace {
 
 export interface GlobalMapProps {
   traces: SessionTrace[];
-  userLocation: { latitude: number; longitude: number } | null;
+  userLocation: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    heading?: number;
+  } | null;
   controlsTopOffset?: number;
 }
 
@@ -122,7 +155,7 @@ export default function GlobalMap({
         initialRegion={initialRegion}
         minZoomLevel={zoomLimits.min}
         maxZoomLevel={zoomLimits.max}
-        showsUserLocation={true}
+        showsUserLocation={false}
         showsMyLocationButton={false}
         loadingEnabled
         loadingBackgroundColor="#050805"
@@ -142,25 +175,79 @@ export default function GlobalMap({
           />
         ) : null}
 
-        {traces.map((trace) => {
+        {traces.map((trace, index) => {
           const polyline = trace.points.map((p) => ({
             latitude: p.lat,
             longitude: p.lon,
           }));
           if (polyline.length < 2) return null;
+          const traceStyle = getTraceStyle(trace, index);
           return (
-            <Polyline
-              key={trace.sessionId}
-              coordinates={polyline}
-              strokeColor={trace.color}
-              strokeWidth={trace.active ? 3 : 2}
-            />
+            <React.Fragment key={trace.sessionId}>
+              <Polyline
+                coordinates={polyline}
+                strokeColor="rgba(0, 0, 0, 0.48)"
+                strokeWidth={traceStyle.width + 4}
+                zIndex={traceStyle.zIndex - 1}
+              />
+              <Polyline
+                coordinates={polyline}
+                strokeColor={colorWithAlpha(trace.color, traceStyle.opacity)}
+                strokeWidth={traceStyle.width}
+                zIndex={traceStyle.zIndex}
+              />
+              {traces.length <= 12 ? (
+                <>
+                  <Marker
+                    coordinate={polyline[0]}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    zIndex={traceStyle.zIndex + 1}
+                  >
+                    <View
+                      style={[
+                        styles.traceStartDot,
+                        { borderColor: colorWithAlpha(trace.color, 0.82) },
+                      ]}
+                    />
+                  </Marker>
+                  <Marker
+                    coordinate={polyline[polyline.length - 1]}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    zIndex={traceStyle.zIndex + 2}
+                  >
+                    <View
+                      style={[
+                        styles.traceEndDot,
+                        { backgroundColor: colorWithAlpha(trace.color, 0.92) },
+                      ]}
+                    />
+                  </Marker>
+                </>
+              ) : null}
+            </React.Fragment>
           );
         })}
 
         {userLocation && (
-          <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>
-            <View style={styles.userDot} />
+          <Circle
+            center={userLocation}
+            radius={Math.max(6, Math.min(userLocation.accuracy ?? 16, 80))}
+            strokeColor="rgba(34, 211, 238, 0.42)"
+            fillColor="rgba(34, 211, 238, 0.12)"
+            zIndex={8}
+          />
+        )}
+
+        {userLocation && (
+          <Marker
+            coordinate={userLocation}
+            anchor={{ x: 0.5, y: 0.5 }}
+            zIndex={20}
+          >
+            <View style={styles.userMarker}>
+              <View style={styles.userPulse} />
+              <View style={styles.userDot} />
+            </View>
           </Marker>
         )}
 
@@ -241,15 +328,30 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 32, 12, 0.22)",
   },
   userDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: COLORS.info,
-    borderWidth: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#22D3EE",
+    borderWidth: 3,
     borderColor: "white",
     shadowColor: COLORS.primary,
     shadowOpacity: 0.8,
     shadowRadius: 12,
+  },
+  userMarker: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  userPulse: {
+    position: "absolute",
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "rgba(34, 211, 238, 0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(34, 211, 238, 0.55)",
   },
   eventDot: {
     width: 10,
@@ -257,6 +359,20 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1.5,
     borderColor: "white",
+  },
+  traceStartDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    borderWidth: 2,
+    backgroundColor: "rgba(5, 12, 8, 0.82)",
+  },
+  traceEndDot: {
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.82)",
   },
   mapControls: {
     position: "absolute",

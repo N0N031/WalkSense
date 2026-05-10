@@ -29,6 +29,7 @@ export interface MarkedEvent {
   dracReminderAt?: number;
   dracReminderSeenAt?: number;
   photoScale?: "none" | "coin" | "rule" | "hand";
+  photoUri?: string;
   position?: {
     latitude: number;
     longitude: number;
@@ -246,6 +247,7 @@ class SessionService {
     classification: string,
     notes?: string,
     photoScale?: MarkedEvent["photoScale"],
+    photoUri?: string,
   ): Promise<void> {
     try {
       const session = await sessionRepository.getSessionById(sessionId);
@@ -258,6 +260,7 @@ class SessionService {
         classification,
         notes,
         photoScale,
+        photoUri,
         dracReminderAt: isArtifact
           ? (event.dracReminderAt ?? Date.now() + 24 * 60 * 60 * 1000)
           : undefined,
@@ -436,6 +439,7 @@ class SessionService {
         classification: event.classification ?? null,
         refilledAt: event.refilledAt ?? null,
         photoScale: event.photoScale ?? null,
+        photoUri: event.photoUri ?? null,
         dracReminderAt: event.dracReminderAt ?? null,
       })),
       gpsPoints: session.gpsTrace.length,

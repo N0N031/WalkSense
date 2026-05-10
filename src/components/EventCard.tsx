@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/src/constants/colors";
 import { MarkedEvent } from "@/src/services/sessionService";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface EventCardProps {
   event: MarkedEvent;
@@ -28,6 +28,9 @@ export default function EventCard({ event, index, onPress }: EventCardProps) {
       <View style={[styles.badge, { backgroundColor: color }]}>
         <Text style={styles.badgeText}>{index + 1}</Text>
       </View>
+      {event.photoUri ? (
+        <Image source={{ uri: event.photoUri }} style={styles.thumbnail} />
+      ) : null}
 
       <View style={styles.content}>
         <Text style={styles.title}>
@@ -119,6 +122,14 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 12,
     fontWeight: "800",
+  },
+  thumbnail: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.32)",
+    backgroundColor: COLORS.background,
   },
   content: {
     flex: 1,

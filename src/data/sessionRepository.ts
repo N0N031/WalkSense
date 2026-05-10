@@ -55,6 +55,7 @@ type EventRow = {
   dracReminderAt: number | null;
   dracReminderSeenAt: number | null;
   photoScale: MarkedEvent["photoScale"] | null;
+  photoUri: string | null;
   signal: number | null;
   position: string | null;
   session_id?: string;
@@ -337,8 +338,8 @@ class SessionRepository {
       `INSERT INTO events (
         id, session_id, timestamp, lat, lon, accuracy, altitude, type,
         classification, signalStrength, notes, refilledAt, dracReminderAt,
-        dracReminderSeenAt, photoScale, signal, position
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        dracReminderSeenAt, photoScale, photoUri, signal, position
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         session_id = excluded.session_id,
         timestamp = excluded.timestamp,
@@ -354,6 +355,7 @@ class SessionRepository {
         dracReminderAt = excluded.dracReminderAt,
         dracReminderSeenAt = excluded.dracReminderSeenAt,
         photoScale = excluded.photoScale,
+        photoUri = excluded.photoUri,
         signal = excluded.signal,
         position = excluded.position`,
       event.id,
@@ -371,6 +373,7 @@ class SessionRepository {
       event.dracReminderAt ?? null,
       event.dracReminderSeenAt ?? null,
       event.photoScale ?? null,
+      event.photoUri ?? null,
       event.signal ?? null,
       event.position ? JSON.stringify(event.position) : null,
     );
@@ -437,6 +440,7 @@ class SessionRepository {
       dracReminderAt: row.dracReminderAt ?? undefined,
       dracReminderSeenAt: row.dracReminderSeenAt ?? undefined,
       photoScale: row.photoScale ?? undefined,
+      photoUri: row.photoUri ?? undefined,
       position: parseJson(row.position, undefined),
     };
   }

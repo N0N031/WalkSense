@@ -151,6 +151,7 @@ export function useSession() {
       classification: string,
       notes?: string,
       photoScale?: MarkedEvent["photoScale"],
+      photoUri?: string,
     ) => {
       if (!session) return false;
       try {
@@ -160,6 +161,7 @@ export function useSession() {
           classification,
           notes,
           photoScale,
+          photoUri,
         );
         setSession((prev) =>
           prev
@@ -172,6 +174,7 @@ export function useSession() {
                         classification,
                         notes,
                         photoScale,
+                        photoUri,
                         dracReminderAt:
                           classification.toLowerCase() === "artefact"
                             ? event.dracReminderAt ??

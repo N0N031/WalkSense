@@ -53,6 +53,7 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
       dracReminderAt INTEGER,
       dracReminderSeenAt INTEGER,
       photoScale TEXT,
+      photoUri TEXT,
       signal REAL,
       position TEXT,
       FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
@@ -83,6 +84,7 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
   `);
 
   await ensureSessionMetaColumns(db);
+  await ensureEventPhotoColumns(db);
   await ensureGpsPointGridColumns(db);
 
   if (hadSnakeCaseSchema) {
@@ -108,12 +110,12 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
       INSERT OR IGNORE INTO events (
         id, session_id, timestamp, lat, lon, accuracy, altitude, type,
         classification, signalStrength, notes, refilledAt, dracReminderAt,
-        dracReminderSeenAt, photoScale, signal, position
+        dracReminderSeenAt, photoScale, photoUri, signal, position
       )
       SELECT
         id, session_id, timestamp, lat, lon, accuracy, altitude, type,
         classification, signal_strength, notes, refilled_at, drac_reminder_at,
-        drac_reminder_seen_at, photo_scale, signal, position_json
+        drac_reminder_seen_at, photo_scale, NULL, signal, position_json
       FROM events_legacy_snake;
 
       DROP TABLE IF EXISTS events_legacy_snake;
@@ -123,6 +125,19 @@ async function runMigrations(db: SQLite.SQLiteDatabase): Promise<void> {
   }
 
   await db.execAsync(`PRAGMA user_version = ${DB_VERSION};`);
+}
+
+async function ensureEventPhotoColumns(
+  db: SQLite.SQLiteDatabase,
+): Promise<void> {
+  const columns = await db.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(events)",
+  );
+  const names = new Set(columns.map((column) => column.name));
+
+  if (!names.has("photoUri")) {
+    await db.execAsync("ALTER TABLE events ADD COLUMN photoUri TEXT");
+  }
 }
 
 async function ensureSessionMetaColumns(

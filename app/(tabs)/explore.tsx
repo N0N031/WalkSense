@@ -88,7 +88,12 @@ export default function ExploreScreen() {
   const totalDistance = initialDistance + liveDistance;
   const gpsTrace = useMemo(() => session?.gpsTrace ?? [], [session?.gpsTrace]);
   const userLocation = location
-    ? { latitude: location.lat, longitude: location.lon }
+    ? {
+        latitude: location.lat,
+        longitude: location.lon,
+        accuracy: location.accuracy,
+        heading: location.bearingDeg,
+      }
     : null;
   const canStartWithGps =
     startGpsAccuracy !== null && startGpsAccuracy <= 40 && !isRunning;
@@ -233,11 +238,16 @@ export default function ExploreScreen() {
 
   // ✅ Handle classify
   const handleClassify = useCallback(
-    async (classification: string, notes?: string) => {
+    async (
+      classification: string,
+      notes?: string,
+      photoScale?: MarkedEvent["photoScale"],
+      photoUri?: string,
+    ) => {
       if (!selectedEvent || !session?.id) return;
 
       try {
-        await classify(selectedEvent.id, classification, notes);
+        await classify(selectedEvent.id, classification, notes, photoScale, photoUri);
         setSelectedEvent(null);
         setClassifyVisible(false);
         setToast("Événement classé");

@@ -1,8 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/src/constants/colors";
 import { MarkedEvent } from "@/src/services/sessionService";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -29,7 +32,12 @@ interface ClassifySheetProps {
   visible: boolean;
   event: MarkedEvent | null;
   onClose: () => void;
-  onClassify: (classification: string, notes?: string, photoScale?: PhotoScale) => void;
+  onClassify: (
+    classification: string,
+    notes?: string,
+    photoScale?: PhotoScale,
+    photoUri?: string,
+  ) => void;
   onRefill?: () => void;
 }
 
@@ -42,6 +50,7 @@ export default function ClassifySheet({
 }: ClassifySheetProps) {
   const [notes, setNotes] = useState("");
   const [photoScale, setPhotoScale] = useState<NonNullable<PhotoScale>>("none");
+  const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [step, setStep] = useState<"classify" | "rebouchage">("classify");
   const [pendingClass, setPendingClass] = useState("");
   const stepTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,22 +67,62 @@ export default function ClassifySheet({
     setNotes("");
     setPendingClass("");
     setPhotoScale("none");
+    setPhotoUri(undefined);
     onClose();
+  }
+
+  async function takePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Camera indisponible", "Autorisez la camera pour ajouter une photo.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: false,
+      quality: 0.82,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setPhotoUri(result.assets[0].uri);
+      if (photoScale === "none") setPhotoScale("rule");
+    }
+  }
+
+  async function pickPhoto() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        "Photos indisponibles",
+        "Autorisez l'acces aux photos pour associer une image.",
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.82,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setPhotoUri(result.assets[0].uri);
+      if (photoScale === "none") setPhotoScale("rule");
+    }
   }
 
   function handleOptionPress(option: string) {
     const scale: PhotoScale = photoScale === "none" ? undefined : photoScale;
     if (requiresRefill) {
       setPendingClass(option);
-      onClassify(option, notes.trim() || undefined, scale);
+      onClassify(option, notes.trim() || undefined, scale, photoUri);
       stepTimerRef.current = setTimeout(() => {
         stepTimerRef.current = null;
         setStep("rebouchage");
       }, 150);
     } else {
-      onClassify(option, notes.trim() || undefined, scale);
+      onClassify(option, notes.trim() || undefined, scale, photoUri);
       setNotes("");
       setPhotoScale("none");
+      setPhotoUri(undefined);
     }
   }
 
@@ -83,6 +132,7 @@ export default function ClassifySheet({
     setNotes("");
     setPendingClass("");
     setPhotoScale("none");
+    setPhotoUri(undefined);
   }
 
   return (
@@ -129,6 +179,40 @@ export default function ClassifySheet({
                   />
 
                   <Text style={styles.scaleLabel}>Échelle visible sur photo</Text>
+                  <View style={styles.photoPanel}>
+                    {photoUri ? (
+                      <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+                    ) : (
+                      <View style={styles.photoPlaceholder}>
+                        <Ionicons
+                          name="camera-outline"
+                          size={22}
+                          color={COLORS.textTertiary}
+                        />
+                        <Text style={styles.photoPlaceholderText}>
+                          Photo graduee
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.photoActions}>
+                      <TouchableOpacity style={styles.photoButton} onPress={takePhoto}>
+                        <Ionicons name="camera" size={16} color={COLORS.accent} />
+                        <Text style={styles.photoButtonText}>Photo</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.photoButton} onPress={pickPhoto}>
+                        <Ionicons name="images" size={16} color={COLORS.accent} />
+                        <Text style={styles.photoButtonText}>Galerie</Text>
+                      </TouchableOpacity>
+                      {photoUri ? (
+                        <TouchableOpacity
+                          style={styles.photoClearButton}
+                          onPress={() => setPhotoUri(undefined)}
+                        >
+                          <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  </View>
                   <View style={styles.scaleRow}>
                     {SCALE_OPTIONS.map((opt) => {
                       const active = photoScale === opt.value;
@@ -267,6 +351,64 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: "uppercase",
     marginBottom: 8,
+  },
+  photoPanel: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "stretch",
+    marginBottom: 12,
+  },
+  photoPreview: {
+    width: 84,
+    height: 84,
+    borderRadius: 8,
+    backgroundColor: COLORS.background,
+  },
+  photoPlaceholder: {
+    width: 84,
+    height: 84,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  photoPlaceholderText: {
+    color: COLORS.textTertiary,
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  photoActions: {
+    flex: 1,
+    gap: 8,
+    justifyContent: "center",
+  },
+  photoButton: {
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.36)",
+    backgroundColor: "rgba(212, 175, 55, 0.08)",
+  },
+  photoButtonText: {
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  photoClearButton: {
+    position: "absolute",
+    right: 0,
+    top: -2,
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
   },
   scaleRow: {
     flexDirection: "row",

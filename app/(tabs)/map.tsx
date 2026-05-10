@@ -33,6 +33,7 @@ const TRACE_COLORS = [
 async function loadUserLocation(): Promise<{
   latitude: number;
   longitude: number;
+  accuracy?: number;
 } | null> {
   const permission = await Location.requestForegroundPermissionsAsync();
   if (permission.status !== "granted") return null;
@@ -44,6 +45,7 @@ async function loadUserLocation(): Promise<{
   return {
     latitude: position.coords.latitude,
     longitude: position.coords.longitude,
+    accuracy: position.coords.accuracy ?? undefined,
   };
 }
 
@@ -58,6 +60,7 @@ export default function MapScreen() {
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
+    accuracy?: number;
   } | null>(null);
 
   const loadSessions = useCallback(async () => {
@@ -67,9 +70,10 @@ export default function MapScreen() {
         sessionService.getSessions(),
         loadUserLocation(),
       ]);
-      setSessions(data);
+      const sorted = [...data].sort((a, b) => b.startTime - a.startTime);
+      setSessions(sorted);
       setVisibleSessionIds((current) =>
-        current === null ? data.map((session) => session.id) : current,
+        current === null ? sorted.map((session) => session.id) : current,
       );
       setUserLocation(position);
     } catch (error) {
@@ -119,6 +123,10 @@ export default function MapScreen() {
     (sum, session) => sum + session.events.length,
     0,
   );
+  const totalPoints = visibleSessions.reduce(
+    (sum, session) => sum + session.gpsTrace.length,
+    0,
+  );
   const visibleSessionsCount = visibleSessions.length;
 
   return (
@@ -132,6 +140,22 @@ export default function MapScreen() {
         {loading ? (
           <View style={styles.loading}>
             <ActivityIndicator color={COLORS.accent} />
+          </View>
+        ) : null}
+        {!loading ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.passageLegend,
+              { bottom: Math.max(insets.bottom, 8) + 82 },
+            ]}
+          >
+            <Text style={styles.passageLegendTitle}>Passages</Text>
+            <Text style={styles.passageLegendText}>
+              {visibleSessionsCount} session
+              {visibleSessionsCount > 1 ? "s" : ""} visible
+              {totalPoints > 0 ? ` · ${totalPoints} points` : ""}
+            </Text>
           </View>
         ) : null}
       </View>
@@ -238,5 +262,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(15, 15, 15, 0.3)",
+  },
+  passageLegend: {
+    position: "absolute",
+    left: 16,
+    maxWidth: "70%",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(212, 175, 55, 0.24)",
+    backgroundColor: "rgba(4, 10, 6, 0.82)",
+  },
+  passageLegendTitle: {
+    color: COLORS.accent,
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  passageLegendText: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 2,
   },
 });

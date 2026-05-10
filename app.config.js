@@ -58,6 +58,7 @@ export default {
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION",
       ],
+      blockedPermissions: ["android.permission.RECORD_AUDIO"],
     },
 
     web: {
@@ -87,6 +88,15 @@ export default {
           dark: {
             backgroundColor: "#050505",
           },
+        },
+      ],
+      [
+        "expo-image-picker",
+        {
+          photosPermission:
+            "WalkSense utilise vos photos pour associer une image aux trouvailles.",
+          cameraPermission:
+            "WalkSense utilise la camera pour photographier les trouvailles.",
         },
       ],
       "expo-secure-store",

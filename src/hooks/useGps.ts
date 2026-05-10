@@ -6,13 +6,22 @@ import { haversineMeters } from "@/src/utils/distance";
 
 const MAX_ACCURACY_M = 40;
 const MAX_JUMP_M = 50;
+const STATIONARY_SPEED_MPS = 0.5;
+const MIN_TRACE_STEP_M = 2.5;
+
+function getStationaryRadius(accuracyMeters: number): number {
+  return Math.max(5, Math.min(12, accuracyMeters * 0.5));
+}
 
 export interface GpsLocation {
   lat: number;
   lon: number;
   accuracy: number;
+  accuracyMeters?: number;
   altitude?: number;
   speed?: number;
+  speedMps?: number;
+  bearingDeg?: number;
   timestamp: number;
 }
 
@@ -79,6 +88,23 @@ export function useGps() {
       if (last) {
         const jump = haversineMeters(last.lat, last.lon, point.lat, point.lon);
         if (jump > MAX_JUMP_M) return;
+
+        const stationaryRadius = getStationaryRadius(accuracyMeters);
+        const isStationaryNoise =
+          speedMps < STATIONARY_SPEED_MPS && jump < stationaryRadius;
+
+        if (isStationaryNoise || jump < MIN_TRACE_STEP_M) {
+          setLocation({
+            ...last,
+            accuracy: accuracyMeters,
+            accuracyMeters,
+            speed: loc.coords.speed ?? undefined,
+            speedMps,
+            timestamp,
+          });
+          return;
+        }
+
         setDistance((prev) => prev + jump);
       }
 
