@@ -17,7 +17,7 @@ import {
 } from "@/src/services/sessionService";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
@@ -84,7 +84,6 @@ export default function ExploreScreen() {
   const sessionMapRef = useRef<SessionMapHandle>(null);
   const { showToast } = useToast();
 
-  const sessionId = session?.id;
   const totalDistance = initialDistance + liveDistance;
   const gpsTrace = useMemo(() => session?.gpsTrace ?? [], [session?.gpsTrace]);
   const userLocation = location
@@ -103,21 +102,11 @@ export default function ExploreScreen() {
   const mapControlsTop = mapHeaderTop + mapHeaderHeight + 14;
   const mapToastTop = mapHeaderTop + mapHeaderHeight + 10;
 
-  // ✅ EFFECT: Update coverage cells when GPS point arrives
-  useEffect(() => {
-    if (!sessionId || !isRunning || !location) return;
-
-    const gpsPoint: GpsPoint = {
-      lat: location.lat,
-      lon: location.lon,
-      accuracy: location.accuracy || 0,
-      timestamp: Date.now(),
-    };
-
+  const persistGpsPoint = useCallback(
+    (targetSessionId: string, gpsPoint: GpsPoint) => {
     setSession((prev) => {
-      if (!prev || prev.id !== sessionId) return prev;
+      if (!prev || prev.id !== targetSessionId) return prev;
 
-      // Avoid duplicates
       const alreadyExists = prev.gpsTrace.some(
         (gp) =>
           gp.timestamp === gpsPoint.timestamp &&
@@ -129,17 +118,19 @@ export default function ExploreScreen() {
       return { ...prev, gpsTrace: [...prev.gpsTrace, gpsPoint] };
     });
 
-    // Persist to DB asynchronously (non-blocking)
-    sessionService.addGpsPoint(sessionId, gpsPoint).catch((err) => {
+    sessionService.addGpsPoint(targetSessionId, gpsPoint).catch((err) => {
       console.warn("GPS point skipped:", err);
     });
-  }, [location, sessionId, setSession, isRunning]);
+    },
+    [setSession],
+  );
 
   // ✅ Handle start session
   const startSessionNow = useCallback(async () => {
     try {
-      await createSession();
-      startTracking();
+      const newSession = await createSession();
+      if (!newSession) return;
+      startTracking((point) => persistGpsPoint(newSession.id, point));
       startTimer();
       setInitialDistance(0);
       setRedFilter(false);
@@ -148,7 +139,7 @@ export default function ExploreScreen() {
       console.error("Failed to start session:", err);
       showToast("Erreur demarrage session", "error");
     }
-  }, [createSession, showToast, startTracking, startTimer]);
+  }, [createSession, persistGpsPoint, showToast, startTracking, startTimer]);
 
   const handleStart = useCallback(() => {
     if (!canStartWithGps) {
@@ -292,7 +283,7 @@ export default function ExploreScreen() {
           if (activeSession) {
             setInitialDistance(current.distance ?? 0);
             startTimer();
-            startTracking();
+            startTracking((point) => persistGpsPoint(current.id, point));
           }
         })
         .catch((err) => {
@@ -303,7 +294,7 @@ export default function ExploreScreen() {
         active = false;
         setToast(null);
       };
-    }, [loadCurrentSession, startTimer, startTracking]),
+    }, [loadCurrentSession, persistGpsPoint, startTimer, startTracking]),
   );
 
   // ✅ View: No active session
