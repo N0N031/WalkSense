@@ -109,11 +109,14 @@ export function useSession() {
       if (!session) return false;
 
       try {
+        // ✅ Persiste en DB (non-blocking)
         await sessionService.addGpsPoint(session.id, point);
 
+        // ✅ Update state avec déduplication
         setSession((prev) => {
           if (!prev) return prev;
 
+          // ✅ Vérifie absence exact (timestamp + lat + lon)
           const alreadyExists = prev.gpsTrace.some(
             (p) =>
               p.timestamp === point.timestamp &&
@@ -123,6 +126,7 @@ export function useSession() {
 
           if (alreadyExists) return prev;
 
+          // ✅ Ajoute le point
           return {
             ...prev,
             gpsTrace: [...prev.gpsTrace, point],
@@ -138,29 +142,43 @@ export function useSession() {
     [session],
   );
 
-  // ✅ FIX ICI : pas de paramètre
   const pause = useCallback(async () => {
-    const updated = await sessionService.pauseSession();
-    if (updated) setSession(updated);
-    return updated;
+    try {
+      const updated = await sessionService.pauseSession();
+      if (updated) setSession(updated);
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur pause");
+      return null;
+    }
   }, []);
 
   const resume = useCallback(async () => {
-    const updated = await sessionService.resumeSession();
-    if (updated) setSession(updated);
-    return updated;
+    try {
+      const updated = await sessionService.resumeSession();
+      if (updated) setSession(updated);
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur resume");
+      return null;
+    }
   }, []);
 
   const end = useCallback(
     async (distance: number, duration: number) => {
       if (!session) return null;
-      const updated = await sessionService.endSession(session.id, {
-        endTime: Date.now(),
-        distance,
-        duration,
-      });
-      setSession(null);
-      return updated;
+      try {
+        const updated = await sessionService.endSession(session.id, {
+          endTime: Date.now(),
+          distance,
+          duration,
+        });
+        setSession(null);
+        return updated;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erreur fermeture");
+        return null;
+      }
     },
     [session],
   );
