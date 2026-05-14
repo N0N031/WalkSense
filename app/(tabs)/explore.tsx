@@ -1,3 +1,5 @@
+// app/(tabs)/explore.tsx
+
 import ClassifySheet from "@/src/components/ClassifySheet";
 import { GpsIndicator } from "@/src/components/GpsIndicator";
 import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
@@ -90,8 +92,10 @@ export default function ExploreScreen() {
   // ✅ Anti-race: protège les callbacks GPS contre un ancien sessionId
   const activeSessionIdRef = useRef<string | null>(null);
 
-  const totalDistance = initialDistance + liveDistance;
+  // ✅ Source de vérité distance : session DB + live GPS delta
+  const totalDistance = (session?.distance ?? 0) + liveDistance;
 
+  // ✅ gpsTrace mémorisé
   const gpsTrace = useMemo(() => session?.gpsTrace ?? [], [session?.gpsTrace]);
 
   const userLocation = location
@@ -314,7 +318,6 @@ export default function ExploreScreen() {
 
           if (!isActive) return;
 
-          // ✅ sync ref sessionId
           activeSessionIdRef.current = current.id;
 
           setInitialDistance(current.distance ?? 0);

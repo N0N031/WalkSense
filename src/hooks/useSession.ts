@@ -1,10 +1,10 @@
+import { getCommune } from "@/src/services/geocodingService";
 import {
   GpsPoint,
   MarkedEvent,
   Session,
   sessionService,
 } from "@/src/services/sessionService";
-import { getCommune } from "@/src/services/geocodingService";
 import * as Location from "expo-location";
 import { useCallback, useMemo, useState } from "react";
 
@@ -36,24 +36,26 @@ export function useSession() {
     }
   }, []);
 
-  const createSession = useCallback(async (input?: {
-    name?: string;
-    commune?: string;
-  }) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const newSession = await sessionService.createSession(input);
-      setSession(newSession);
-      void hydrateSessionCommune(newSession.id);
-      return newSession;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur creation session");
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [hydrateSessionCommune]);
+  const createSession = useCallback(
+    async (input?: { name?: string; commune?: string }) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const newSession = await sessionService.createSession(input);
+        setSession(newSession);
+        void hydrateSessionCommune(newSession.id);
+        return newSession;
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Erreur creation session",
+        );
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [hydrateSessionCommune],
+  );
 
   const loadSession = useCallback(async (sessionId: string) => {
     try {
@@ -105,11 +107,28 @@ export function useSession() {
   const addGpsPoint = useCallback(
     async (point: GpsPoint) => {
       if (!session) return false;
+
       try {
         await sessionService.addGpsPoint(session.id, point);
-        setSession((prev) =>
-          prev ? { ...prev, gpsTrace: [...prev.gpsTrace, point] } : null,
-        );
+
+        setSession((prev) => {
+          if (!prev) return prev;
+
+          const alreadyExists = prev.gpsTrace.some(
+            (p) =>
+              p.timestamp === point.timestamp &&
+              p.lat === point.lat &&
+              p.lon === point.lon,
+          );
+
+          if (alreadyExists) return prev;
+
+          return {
+            ...prev,
+            gpsTrace: [...prev.gpsTrace, point],
+          };
+        });
+
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erreur trace GPS");
@@ -119,6 +138,7 @@ export function useSession() {
     [session],
   );
 
+  // ✅ FIX ICI : pas de paramètre
   const pause = useCallback(async () => {
     const updated = await sessionService.pauseSession();
     if (updated) setSession(updated);
@@ -177,8 +197,8 @@ export function useSession() {
                         photoUri,
                         dracReminderAt:
                           classification.toLowerCase() === "artefact"
-                            ? event.dracReminderAt ??
-                              Date.now() + 24 * 60 * 60 * 1000
+                            ? (event.dracReminderAt ??
+                              Date.now() + 24 * 60 * 60 * 1000)
                             : undefined,
                       }
                     : event,
@@ -206,10 +226,10 @@ export function useSession() {
             ? {
                 ...prev,
                 events: prev.events.map((e) =>
-                  e.id === eventId ? { ...e, refilledAt } : e
+                  e.id === eventId ? { ...e, refilledAt } : e,
                 ),
               }
-            : null
+            : null,
         );
         return true;
       } catch (err) {
@@ -217,7 +237,7 @@ export function useSession() {
         return false;
       }
     },
-    [session]
+    [session],
   );
 
   const saveSession = useCallback(async () => {

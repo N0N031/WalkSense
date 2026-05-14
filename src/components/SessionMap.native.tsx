@@ -1,14 +1,16 @@
+// src/components/SessionMap.native.tsx
+
 import { MapType } from "@/src/components/MapTypeToggle";
 import { COLORS } from "@/src/constants/colors";
 import { GpsPoint, MarkedEvent } from "@/src/services/sessionService";
 import React, {
-    forwardRef,
-    useCallback,
-    useEffect,
-    useImperativeHandle,
-    useMemo,
-    useRef,
-    useState,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import RNMapView, {
@@ -26,20 +28,32 @@ const TILES: Record<string, string> = {
   osm: "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png",
   ign: IGN("GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2"),
   "ign-ortho": IGN("ORTHOIMAGERY.ORTHOPHOTOS", "image/jpeg"),
-  "ign-cassini": IGN("BNF-IGNF_GEOGRAPHICALGRIDSYSTEMS.CASSINI", "image/png", "PM_6_14"),
-  "ign-etatmajor": IGN("GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40", "image/jpeg", "PM_6_15"),
-  "ign-cadastre": IGN("CADASTRALPARCELS.PARCELLAIRE_EXPRESS", "image/png", "PM_0_19"),
+  "ign-cassini": IGN(
+    "BNF-IGNF_GEOGRAPHICALGRIDSYSTEMS.CASSINI",
+    "image/png",
+    "PM_6_14",
+  ),
+  "ign-etatmajor": IGN(
+    "GEOGRAPHICALGRIDSYSTEMS.ETATMAJOR40",
+    "image/jpeg",
+    "PM_6_15",
+  ),
+  "ign-cadastre": IGN(
+    "CADASTRALPARCELS.PARCELLAIRE_EXPRESS",
+    "image/png",
+    "PM_0_19",
+  ),
 };
 
 const ZOOM_LIMITS: Record<string, { min: number; max: number }> = {
-  google:          { min: 0,  max: 20 },
-  satellite:       { min: 0,  max: 20 },
-  osm:             { min: 0,  max: 19 },
-  ign:             { min: 0,  max: 19 },
-  "ign-ortho":     { min: 0,  max: 21 },
-  "ign-cassini":   { min: 6,  max: 14 },
-  "ign-etatmajor": { min: 6,  max: 15 },
-  "ign-cadastre":  { min: 0,  max: 19 },
+  google: { min: 0, max: 20 },
+  satellite: { min: 0, max: 20 },
+  osm: { min: 0, max: 19 },
+  ign: { min: 0, max: 19 },
+  "ign-ortho": { min: 0, max: 21 },
+  "ign-cassini": { min: 6, max: 14 },
+  "ign-etatmajor": { min: 6, max: 15 },
+  "ign-cadastre": { min: 0, max: 19 },
 };
 
 export interface SessionMapProps {
@@ -62,15 +76,15 @@ export interface SessionMapHandle {
 }
 
 function SessionMap(
-{
-  gpsTrace,
-  userLocation,
-  events,
-  onEventPress,
-  historicalTraces = [],
-  mapType: controlledMapType,
-}: SessionMapProps,
-ref: React.Ref<SessionMapHandle>,
+  {
+    gpsTrace,
+    userLocation,
+    events,
+    onEventPress,
+    historicalTraces = [],
+    mapType: controlledMapType,
+  }: SessionMapProps,
+  ref: React.Ref<SessionMapHandle>,
 ) {
   const [internalMapType] = useState<MapType>("google");
   const mapRef = useRef<RNMapView>(null);
@@ -94,23 +108,39 @@ ref: React.Ref<SessionMapHandle>,
     longitudeDelta: 0.005,
   };
 
-  const polyline = useMemo(
-    () => gpsTrace.map((p) => ({ latitude: p.lat, longitude: p.lon })),
-    [gpsTrace],
-  );
+  // ✅ PERF CRITIQUE : limite à 500 points (terrain safe)
+  const polyline = useMemo(() => {
+    if (gpsTrace.length === 0) return [];
+    const slice = gpsTrace.length > 500 ? gpsTrace.slice(-500) : gpsTrace;
+    return slice.map((p) => ({
+      latitude: p.lat,
+      longitude: p.lon,
+    }));
+  }, [gpsTrace]);
 
   const centerOnUser = useCallback(() => {
     if (!userLocation) return;
     mapRef.current?.animateToRegion(
-      { ...userLocation, latitudeDelta: 0.005, longitudeDelta: 0.005 },
+      {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
       400,
     );
   }, [userLocation]);
 
   const fitTrace = useCallback(() => {
     const coords = polyline.length > 0 ? [...polyline] : [];
-    if (userLocation) coords.push(userLocation);
+    if (userLocation) {
+      coords.push({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+      });
+    }
     if (coords.length === 0) return;
+
     mapRef.current?.fitToCoordinates(coords, {
       edgePadding: { top: 80, right: 72, bottom: 80, left: 48 },
       animated: true,
@@ -138,7 +168,7 @@ ref: React.Ref<SessionMapHandle>,
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={StyleSheet.absoluteFillObject}
-        mapType={nativeMapType as any}
+        mapType={nativeMapType}
         initialRegion={region}
         minZoomLevel={zoomLimits.min}
         maxZoomLevel={zoomLimits.max}
@@ -160,18 +190,21 @@ ref: React.Ref<SessionMapHandle>,
         ) : null}
 
         {historicalTraces.map((trace, idx) => {
+          if (trace.length < 2) return null;
+
           const coords = trace.map((p) => ({
             latitude: p.lat,
             longitude: p.lon,
           }));
-          return coords.length > 1 ? (
+
+          return (
             <Polyline
               key={`hist-${idx}`}
               coordinates={coords}
               strokeColor="rgba(212, 175, 55, 0.25)"
               strokeWidth={2}
             />
-          ) : null;
+          );
         })}
 
         {polyline.length > 1 && (
@@ -185,7 +218,10 @@ ref: React.Ref<SessionMapHandle>,
 
         {userLocation && (
           <Circle
-            center={userLocation}
+            center={{
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+            }}
             radius={Math.max(6, Math.min(userLocation.accuracy ?? 12, 60))}
             strokeColor="rgba(34, 211, 238, 0.42)"
             fillColor="rgba(34, 211, 238, 0.12)"
@@ -195,7 +231,10 @@ ref: React.Ref<SessionMapHandle>,
 
         {userLocation && (
           <Marker
-            coordinate={userLocation}
+            coordinate={{
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+            }}
             anchor={{ x: 0.5, y: 0.5 }}
             zIndex={20}
           >
@@ -211,12 +250,14 @@ ref: React.Ref<SessionMapHandle>,
             latitude: event.position?.latitude ?? event.location.lat,
             longitude: event.position?.longitude ?? event.location.lon,
           };
+
           const bg =
             event.type === "auto"
               ? COLORS.markerAuto
               : event.type === "find"
                 ? COLORS.markerFind
                 : COLORS.markerManual;
+
           return (
             <Marker
               key={event.id}
@@ -230,6 +271,7 @@ ref: React.Ref<SessionMapHandle>,
           );
         })}
       </RNMapView>
+
       <View pointerEvents="none" style={styles.mapTint} />
 
       <Text style={styles.attribution}>
