@@ -1,28 +1,20 @@
+import { calculateConfidenceLevel } from "@/src/services/GpsQualityService";
+import { GpsPoint } from "@/src/services/sessionService";
+import { haversineMeters } from "@/src/utils/distance";
 import * as Location from "expo-location";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GpsPoint } from "@/src/services/sessionService";
-import { calculateConfidenceLevel } from "@/src/services/GpsQualityService";
-import { haversineMeters } from "@/src/utils/distance";
 
 const MAX_ACCURACY_M = 40;
 const MAX_JUMP_M = 50;
 const STATIONARY_SPEED_MPS = 0.5;
-<<<<<<< HEAD
-const MIN_TRACE_STEP_M = 2.5;
 
-function getStationaryRadius(accuracyMeters: number): number {
-  return Math.max(5, Math.min(12, accuracyMeters * 0.5));
-=======
 const DISPLAY_DEADBAND_M = 1.2;
 const DISPLAY_SMOOTHING = 0.35;
 const MIN_TRACE_STEP_M = 2.5;
 const STATIONARY_TRACE_RADIUS_M = 4;
 
 function getStationaryRadius(accuracyMeters: number): number {
-  return Math.max(
-    STATIONARY_TRACE_RADIUS_M,
-    Math.min(8, accuracyMeters * 0.3),
-  );
+  return Math.max(STATIONARY_TRACE_RADIUS_M, Math.min(8, accuracyMeters * 0.3));
 }
 
 function interpolatePoint(
@@ -35,7 +27,6 @@ function interpolatePoint(
     lat: previous.lat + (next.lat - previous.lat) * ratio,
     lon: previous.lon + (next.lon - previous.lon) * ratio,
   };
->>>>>>> 33cd34b (Improve GPS stability and map traces)
 }
 
 export interface GpsLocation {
@@ -61,6 +52,7 @@ export function useGps() {
   const lastAcceptedRef = useRef<GpsPoint | null>(null);
   const lastDisplayRef = useRef<GpsPoint | null>(null);
 
+  // ✅ Permission GPS
   const requestPermission = useCallback(async (): Promise<boolean> => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -73,6 +65,7 @@ export function useGps() {
     }
   }, []);
 
+  // ✅ Reset
   const resetGps = useCallback(() => {
     setDistance(0);
     setGpsTrace([]);
@@ -80,19 +73,23 @@ export function useGps() {
     lastDisplayRef.current = null;
   }, []);
 
+  // ✅ Stop tracking
   const stopTracking = useCallback(() => {
     subscriptionRef.current?.remove();
     subscriptionRef.current = null;
     setIsTracking(false);
   }, []);
 
+  // ✅ Core GPS logic
   const acceptLocation = useCallback(
     (loc: Location.LocationObject, onPoint?: (point: GpsPoint) => void) => {
-      const accuracyMeters = loc.coords.accuracy ?? 10;
+      const accuracyMeters = loc.coords.accuracy ?? 999;
       if (accuracyMeters > MAX_ACCURACY_M) return;
+
       const speedMps = Math.max(0, loc.coords.speed ?? 0);
       const heading = loc.coords.heading;
       const timestamp = Date.now();
+
       const confidenceLevel = calculateConfidenceLevel({
         accuracyMeters,
         speedMps,
@@ -111,18 +108,31 @@ export function useGps() {
         timestamp,
       };
 
+      // ✅ Smooth UI position
       const lastDisplay = lastDisplayRef.current;
       const displayJump = lastDisplay
-        ? haversineMeters(lastDisplay.lat, lastDisplay.lon, point.lat, point.lon)
+        ? haversineMeters(
+            lastDisplay.lat,
+            lastDisplay.lon,
+            point.lat,
+            point.lon,
+          )
         : 0;
+
       const displayPoint =
         lastDisplay && displayJump < DISPLAY_DEADBAND_M
-          ? { ...lastDisplay, accuracy: accuracyMeters, accuracyMeters, timestamp }
+          ? {
+              ...lastDisplay,
+              accuracy: accuracyMeters,
+              accuracyMeters,
+              timestamp,
+            }
           : lastDisplay
             ? interpolatePoint(lastDisplay, point, DISPLAY_SMOOTHING)
             : point;
 
       lastDisplayRef.current = displayPoint;
+
       setLocation({
         ...displayPoint,
         accuracy: accuracyMeters,
@@ -132,30 +142,43 @@ export function useGps() {
         timestamp,
       });
 
+      // ✅ Distance + trace logic
       const last = lastAcceptedRef.current;
-      if (last) {
-        const jump = haversineMeters(last.lat, last.lon, point.lat, point.lon);
-        if (jump > MAX_JUMP_M) return;
 
-        const stationaryRadius = getStationaryRadius(accuracyMeters);
-        const isStationaryNoise =
-          speedMps < STATIONARY_SPEED_MPS && jump < stationaryRadius;
-
-        if (isStationaryNoise || jump < MIN_TRACE_STEP_M) {
-        33cd34b (Improve GPS stability and map traces)
-          return;
-        }
-
-        setDistance((prev) => prev + jump);
+      if (!last) {
+        lastAcceptedRef.current = point;
+        setGpsTrace([point]);
+        onPoint?.(point);
+        return;
       }
 
+      const jump = haversineMeters(last.lat, last.lon, point.lat, point.lon);
+
+      // ❌ Ignore jump GPS aberrant
+      if (jump > MAX_JUMP_M) return;
+
+      // ❌ Ignore micro jitter
+      if (jump < MIN_TRACE_STEP_M) return;
+
+      // ❌ Ignore bruit stationnaire
+      const stationaryRadius = getStationaryRadius(accuracyMeters);
+      const isStationaryNoise =
+        speedMps < STATIONARY_SPEED_MPS && jump < stationaryRadius;
+
+      if (isStationaryNoise) return;
+
+      // ✅ Accept point
       lastAcceptedRef.current = point;
+
       setGpsTrace((prev) => [...prev, point]);
+      setDistance((prev) => prev + jump);
+
       onPoint?.(point);
     },
     [],
   );
 
+  // ✅ Start tracking
   const startTracking = useCallback(
     async (onPoint?: (point: GpsPoint) => void) => {
       if (subscriptionRef.current) return;
@@ -170,6 +193,7 @@ export function useGps() {
         const current = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
+
         acceptLocation(current, onPoint);
 
         subscriptionRef.current = await Location.watchPositionAsync(
