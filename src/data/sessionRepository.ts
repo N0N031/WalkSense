@@ -80,14 +80,30 @@ class SessionRepository {
 
   async updateSession(session: Session): Promise<void> {
     const db = await getDb();
+
+    const gpsTrace = session.gpsTrace;
+    const events = session.events;
+
+    const shouldRewriteChildren = gpsTrace.length > 0 || events.length > 0;
+
     await db.withTransactionAsync(async () => {
       await this.upsertSessionRow(session);
-      await db.runAsync("DELETE FROM gps_points WHERE session_id = ?", session.id);
+
+      // Anti-race:
+      // si l'état est temporairement vide, on évite d'écraser gps_points/events en DB.
+      if (!shouldRewriteChildren) return;
+
+      await db.runAsync(
+        "DELETE FROM gps_points WHERE session_id = ?",
+        session.id,
+      );
       await db.runAsync("DELETE FROM events WHERE session_id = ?", session.id);
-      for (const point of session.gpsTrace) {
+
+      for (const point of gpsTrace) {
         await this.insertGpsPointRow(session.id, point);
       }
-      for (const event of session.events) {
+
+      for (const event of events) {
         await this.upsertEventRow(session.id, event);
       }
     });
@@ -147,6 +163,40 @@ class SessionRepository {
     await this.insertGpsPointRow(sessionId, point);
   }
 
+  async getLastGpsPoint(sessionId: string): Promise<GpsPoint | null> {
+    const db = await getDb();
+    const row = await db.getFirstAsync<GpsPointRow>(
+      `SELECT
+        lat, lon, accuracy, accuracyMeters, timestamp, altitude,
+        speedMps, confidenceLevel, bearingDeg, satellitesCount
+       FROM gps_points
+       WHERE session_id = ?
+       ORDER BY timestamp DESC
+       LIMIT 1`,
+      sessionId,
+    );
+
+    if (!row) return null;
+    return this.gpsPointFromRow({ ...row, session_id: sessionId });
+  }
+
+  async incrementSessionDistanceAndDuration(
+    sessionId: string,
+    distanceDeltaMeters: number,
+    durationSeconds: number,
+    newDistanceMeters: number,
+  ): Promise<void> {
+    const db = await getDb();
+    await db.runAsync(
+      `UPDATE sessions
+       SET distance = ?, duration = ?
+       WHERE id = ?`,
+      newDistanceMeters,
+      durationSeconds,
+      sessionId,
+    );
+  }
+
   async updateSessionLock(
     id: string,
     hash: string,
@@ -171,6 +221,20 @@ class SessionRepository {
     });
   }
 
+  async updateSessionMeta(id: string, name: string): Promise<void> {
+    const db = await getDb();
+    await db.runAsync("UPDATE sessions SET name = ? WHERE id = ?", name, id);
+  }
+
+  async updateSessionCommune(id: string, commune: string): Promise<void> {
+    const db = await getDb();
+    await db.runAsync(
+      "UPDATE sessions SET commune = ? WHERE id = ?",
+      commune,
+      id,
+    );
+  }
+
   async getDueDracReminders(
     now: number,
   ): Promise<{ sessionId: string; eventId: string }[]> {
@@ -186,20 +250,6 @@ class SessionRepository {
     );
   }
 
-  async updateSessionMeta(id: string, name: string): Promise<void> {
-    const db = await getDb();
-    await db.runAsync("UPDATE sessions SET name = ? WHERE id = ?", name, id);
-  }
-
-  async updateSessionCommune(id: string, commune: string): Promise<void> {
-    const db = await getDb();
-    await db.runAsync(
-      "UPDATE sessions SET commune = ? WHERE id = ?",
-      commune,
-      id,
-    );
-  }
-
   private async hydrateSessions(rows: SessionRow[]): Promise<Session[]> {
     if (rows.length === 0) return [];
 
@@ -207,7 +257,6 @@ class SessionRepository {
     const ids = rows.map((row) => row.id);
     const placeholders = ids.map(() => "?").join(",");
 
-    // Child rows are loaded in two batched queries to avoid duplicating session rows via joins.
     const gpsRows = await db.getAllAsync<GpsPointRow & { session_id: string }>(
       `SELECT
         session_id, lat, lon, accuracy, accuracyMeters, timestamp, altitude,
@@ -217,6 +266,7 @@ class SessionRepository {
        ORDER BY session_id, timestamp ASC`,
       ids,
     );
+
     const eventRows = await db.getAllAsync<EventRow>(
       `SELECT *
        FROM events
@@ -234,10 +284,12 @@ class SessionRepository {
 
     const eventsBySession = new Map<string, MarkedEvent[]>();
     for (const row of eventRows) {
-      if (!row.session_id) continue;
-      const list = eventsBySession.get(row.session_id) ?? [];
+      const sessionId = row.session_id;
+      if (!sessionId) continue;
+
+      const list = eventsBySession.get(sessionId) ?? [];
       list.push(this.eventFromRow(row));
-      eventsBySession.set(row.session_id, list);
+      eventsBySession.set(sessionId, list);
     }
 
     return rows.map((row) =>
@@ -251,6 +303,7 @@ class SessionRepository {
 
   private async hydrateSession(row: SessionRow): Promise<Session> {
     const db = await getDb();
+
     const gpsRows = await db.getAllAsync<GpsPointRow>(
       `SELECT
         lat, lon, accuracy, accuracyMeters, timestamp, altitude,
@@ -260,13 +313,17 @@ class SessionRepository {
        ORDER BY timestamp ASC`,
       row.id,
     );
+
     const eventRows = await db.getAllAsync<EventRow>(
       "SELECT * FROM events WHERE session_id = ? ORDER BY timestamp ASC",
       row.id,
     );
+
     return this.sessionFromRow(
       row,
-      gpsRows.map((gpsRow) => this.gpsPointFromRow(gpsRow)),
+      gpsRows.map((gpsRow) =>
+        this.gpsPointFromRow({ ...gpsRow, session_id: row.id }),
+      ),
       eventRows.map((eventRow) => this.eventFromRow(eventRow)),
     );
   }
@@ -310,6 +367,7 @@ class SessionRepository {
   ): Promise<void> {
     const db = await getDb();
     const entity = gpsPointToEntity(sessionId, point);
+
     await db.runAsync(
       `INSERT INTO gps_points (
         session_id, lat, lon, accuracy, accuracyMeters, timestamp, altitude,
@@ -402,7 +460,9 @@ class SessionRepository {
     };
   }
 
-  private gpsPointFromRow(row: GpsPointRow): GpsPoint {
+  private gpsPointFromRow(
+    row: GpsPointRow & { session_id?: string },
+  ): GpsPoint {
     return gpsPointEntityToPoint({
       sessionId: row.session_id ?? "",
       lat: row.lat,
@@ -410,16 +470,16 @@ class SessionRepository {
       accuracy: row.accuracy,
       accuracyMeters: row.accuracyMeters,
       timestamp: row.timestamp,
-      altitude: row.altitude,
-      speedMps: row.speedMps,
+      altitude: row.altitude ?? null,
+      speedMps: row.speedMps ?? null,
       confidenceLevel: row.confidenceLevel,
-      bearingDeg: row.bearingDeg,
-      satellitesCount: row.satellitesCount,
+      bearingDeg: row.bearingDeg ?? null,
+      satellitesCount: row.satellitesCount ?? null,
     });
   }
 
   private eventFromRow(row: EventRow): MarkedEvent {
-    const location = {
+    const location: GpsPoint = {
       lat: row.lat,
       lon: row.lon,
       accuracy: row.accuracy,

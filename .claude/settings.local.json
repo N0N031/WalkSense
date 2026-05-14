@@ -73,7 +73,12 @@
       "Bash(find /c/Users/arnau -name \"adb.exe\" 2>/dev/null | head -5; find /c/ -maxdepth 4 -name \"platform-tools\" -type d 2>/dev/null | head -5)",
       "Read(//c//**)",
       "Bash(npx eas *)",
-      "Bash(eas build *)"
+      "Bash(eas build *)",
+      "Bash(eas build:list --limit 5 --non-interactive)",
+      "Bash(eas build:cancel 1e2e6728-1ad4-497e-bd0a-8483678c9f2b --non-interactive)",
+      "Bash(eas --version)",
+      "Bash(npm show *)",
+      "Bash(eas build:list --limit 3 --non-interactive)"
     ]
   }
 }

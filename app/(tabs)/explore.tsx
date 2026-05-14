@@ -1,7 +1,7 @@
 import ClassifySheet from "@/src/components/ClassifySheet";
-import PremiumHeader from "@/src/components/PremiumHeader";
 import { GpsIndicator } from "@/src/components/GpsIndicator";
 import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
+import PremiumHeader from "@/src/components/PremiumHeader";
 import SessionBottomSheet from "@/src/components/SessionBottomSheet";
 import SessionHud from "@/src/components/SessionHud";
 import SessionMap, { SessionMapHandle } from "@/src/components/SessionMap";
@@ -59,6 +59,7 @@ export default function ExploreScreen() {
     classify,
     refill,
   } = useSession();
+
   const {
     location,
     distance: liveDistance,
@@ -66,6 +67,7 @@ export default function ExploreScreen() {
     startTracking,
     stopTracking,
   } = useGps();
+
   const {
     elapsed,
     start: startTimer,
@@ -73,6 +75,7 @@ export default function ExploreScreen() {
     pause: pauseTimer,
     resume: resumeTimer,
   } = useTimer();
+
   const [toast, setToast] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<MarkedEvent | null>(null);
   const [classifyVisible, setClassifyVisible] = useState(false);
@@ -84,8 +87,13 @@ export default function ExploreScreen() {
   const sessionMapRef = useRef<SessionMapHandle>(null);
   const { showToast } = useToast();
 
+  // ✅ Anti-race: protège les callbacks GPS contre un ancien sessionId
+  const activeSessionIdRef = useRef<string | null>(null);
+
   const totalDistance = initialDistance + liveDistance;
+
   const gpsTrace = useMemo(() => session?.gpsTrace ?? [], [session?.gpsTrace]);
+
   const userLocation = location
     ? {
         latitude: location.lat,
@@ -94,8 +102,10 @@ export default function ExploreScreen() {
         heading: location.bearingDeg,
       }
     : null;
+
   const canStartWithGps =
     startGpsAccuracy !== null && startGpsAccuracy <= 40 && !isRunning;
+
   const statusTop = StatusBar.currentHeight ?? insets.top;
   const mapHeaderTop = statusTop + 6;
   const mapHeaderHeight = 62;
@@ -104,23 +114,28 @@ export default function ExploreScreen() {
 
   const persistGpsPoint = useCallback(
     (targetSessionId: string, gpsPoint: GpsPoint) => {
-    setSession((prev) => {
-      if (!prev || prev.id !== targetSessionId) return prev;
+      // ✅ Ignore si une autre session est devenue active
+      if (activeSessionIdRef.current !== targetSessionId) return;
 
-      const alreadyExists = prev.gpsTrace.some(
-        (gp) =>
-          gp.timestamp === gpsPoint.timestamp &&
-          gp.lat === gpsPoint.lat &&
-          gp.lon === gpsPoint.lon,
-      );
-      if (alreadyExists) return prev;
+      setSession((prev) => {
+        if (!prev || prev.id !== targetSessionId) return prev;
 
-      return { ...prev, gpsTrace: [...prev.gpsTrace, gpsPoint] };
-    });
+        const alreadyExists = prev.gpsTrace.some(
+          (gp) =>
+            gp.timestamp === gpsPoint.timestamp &&
+            gp.lat === gpsPoint.lat &&
+            gp.lon === gpsPoint.lon,
+        );
+        if (alreadyExists) return prev;
 
-    sessionService.addGpsPoint(targetSessionId, gpsPoint).catch((err) => {
-      console.warn("GPS point skipped:", err);
-    });
+        return { ...prev, gpsTrace: [...prev.gpsTrace, gpsPoint] };
+      });
+
+      sessionService
+        .addGpsPoint(targetSessionId, gpsPoint)
+        .catch((err: unknown) => {
+          console.warn("GPS point skipped:", err);
+        });
     },
     [setSession],
   );
@@ -130,12 +145,17 @@ export default function ExploreScreen() {
     try {
       const newSession = await createSession();
       if (!newSession) return;
+
+      activeSessionIdRef.current = newSession.id;
+
       startTracking((point) => persistGpsPoint(newSession.id, point));
       startTimer();
+
       setInitialDistance(0);
       setRedFilter(false);
+
       showToast("Session demarree ✓", "success");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to start session:", err);
       showToast("Erreur demarrage session", "error");
     }
@@ -185,11 +205,13 @@ export default function ExploreScreen() {
         style: "destructive",
         onPress: async () => {
           try {
+            activeSessionIdRef.current = null;
+
             await end(totalDistance, elapsed);
             stopTracking();
             stopTimer();
             setToast("Session terminée");
-          } catch (err) {
+          } catch (err: unknown) {
             console.error("Failed to end session:", err);
             setToast("Erreur fermeture session");
           }
@@ -201,6 +223,7 @@ export default function ExploreScreen() {
   // ✅ Handle add marker
   const handleAddMarker = useCallback(async () => {
     setToast(null);
+
     if (!session?.id || !location) {
       setToast("GPS non disponible");
       return;
@@ -221,7 +244,7 @@ export default function ExploreScreen() {
 
       await addEvent(event);
       setToast("Marqueur ajouté");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to add event:", err);
       setToast("Erreur ajout marqueur");
     }
@@ -238,11 +261,17 @@ export default function ExploreScreen() {
       if (!selectedEvent || !session?.id) return;
 
       try {
-        await classify(selectedEvent.id, classification, notes, photoScale, photoUri);
+        await classify(
+          selectedEvent.id,
+          classification,
+          notes,
+          photoScale,
+          photoUri,
+        );
         setSelectedEvent(null);
         setClassifyVisible(false);
         setToast("Événement classé");
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Failed to classify:", err);
         setToast("Erreur classification");
       }
@@ -259,7 +288,7 @@ export default function ExploreScreen() {
       setSelectedEvent(null);
       setClassifyVisible(false);
       setToast("Rebouchage enregistré");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to refill:", err);
       setToast("Erreur rebouchage");
     }
@@ -275,21 +304,28 @@ export default function ExploreScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
+
       loadCurrentSession()
         .then((current) => {
           if (!active || !current) return;
-          const activeSession =
+
+          const isActive =
             current.status === "active" || current.status === "running";
-          if (activeSession) {
-            setInitialDistance(current.distance ?? 0);
-            startTimer();
-            startTracking((point) => persistGpsPoint(current.id, point));
-          }
+
+          if (!isActive) return;
+
+          // ✅ sync ref sessionId
+          activeSessionIdRef.current = current.id;
+
+          setInitialDistance(current.distance ?? 0);
+          startTimer();
+          startTracking((point) => persistGpsPoint(current.id, point));
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           console.error("ExploreScreen.loadCurrentSession error:", err);
           setToast("Erreur chargement session");
         });
+
       return () => {
         active = false;
         setToast(null);
@@ -307,6 +343,7 @@ export default function ExploreScreen() {
           style={styles.emptyBackground}
         >
           <View style={styles.emptyOverlay} />
+
           <ScrollView
             style={styles.emptyScroll}
             contentContainerStyle={[
@@ -326,6 +363,7 @@ export default function ExploreScreen() {
                   resizeMode="contain"
                 />
               </View>
+
               <Text
                 style={styles.emptyBrandTitle}
                 numberOfLines={1}
@@ -334,6 +372,7 @@ export default function ExploreScreen() {
               >
                 WalkSense
               </Text>
+
               <Text style={styles.emptyBrandSubtitle} numberOfLines={1}>
                 Terrain Tracking
               </Text>
@@ -398,12 +437,7 @@ export default function ExploreScreen() {
   // ✅ View: Active session
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.mapHeader,
-          { top: mapHeaderTop },
-        ]}
-      >
+      <View style={[styles.mapHeader, { top: mapHeaderTop }]}>
         <PremiumHeader
           compact
           style={[styles.brandRow, { flex: 1 }]}
@@ -428,16 +462,22 @@ export default function ExploreScreen() {
                   color={userLocation ? COLORS.primary : COLORS.textTertiary}
                 />
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={styles.headerMapControlButton}
                 onPress={() => sessionMapRef.current?.fitTrace()}
               >
-                <Ionicons name="expand-outline" size={18} color={COLORS.accent} />
+                <Ionicons
+                  name="expand-outline"
+                  size={18}
+                  color={COLORS.accent}
+                />
               </TouchableOpacity>
             </View>
           }
         />
       </View>
+
       <View style={panelsCollapsed ? styles.mapAreaExpanded : styles.mapArea}>
         <SessionMap
           ref={sessionMapRef}
@@ -507,6 +547,7 @@ export default function ExploreScreen() {
               {session.events.length}
             </Text>
           </TouchableOpacity>
+
           <View style={styles.compactMetric}>
             <Ionicons
               name={isTracking ? "navigate" : "navigate-outline"}
@@ -551,6 +592,7 @@ export default function ExploreScreen() {
             onPress={handleResume}
           />
         )}
+
         <ControlButton
           icon="stop"
           label="Terminer"
@@ -566,11 +608,13 @@ export default function ExploreScreen() {
         onClassify={handleClassify}
         onRefill={handleRefill}
       />
+
       <Toast
         message={toast}
         onDone={() => setToast(null)}
         topOffset={mapToastTop}
       />
+
       {redFilter ? <View style={styles.redFilterOverlay} /> : null}
     </View>
   );

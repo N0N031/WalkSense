@@ -279,7 +279,34 @@ class SessionService {
         console.warn("addGpsPoint: session not found", sessionId);
         return;
       }
+
+      const previous = await sessionRepository.getLastGpsPoint(sessionId);
+
       await sessionRepository.insertGpsPoint(sessionId, point);
+
+      // Mise à jour distance/duration côté DB (source de vérité sessions.distance)
+      // => corrige le bug "distance cumul = 0" même si l’état UI est en race.
+      let distanceDelta = 0;
+      if (previous) {
+        distanceDelta = this.calculateDistance(previous, point);
+        if (!Number.isFinite(distanceDelta) || distanceDelta < 0) {
+          distanceDelta = 0;
+        }
+      }
+
+      const newDistance = session.distance + distanceDelta;
+
+      // duration: time between startTime and latest point timestamp
+      // (en ms → s dans ton modèle)
+      const durationMs = Math.max(0, point.timestamp - session.startTime);
+      const durationSeconds = Math.floor(durationMs / 1000);
+
+      await sessionRepository.incrementSessionDistanceAndDuration(
+        sessionId,
+        distanceDelta,
+        durationSeconds,
+        newDistance,
+      );
     } catch (error) {
       console.error("SessionService.addGpsPoint error:", error);
       throw error;
@@ -312,6 +339,7 @@ class SessionService {
     const session = await sessionRepository.getSessionById(sessionId);
     const event = session?.events.find((item) => item.id === eventId);
     if (!event) return;
+
     await sessionRepository.updateEvent(sessionId, {
       ...event,
       dracReminderSeenAt: Date.now(),
@@ -403,6 +431,7 @@ class SessionService {
       const classifiedCount = session.events.filter((event) =>
         Boolean(event.classification),
       ).length;
+
       const avgSpeed =
         session.duration > 0
           ? session.distance / 1000 / (session.duration / 3600)
