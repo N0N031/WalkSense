@@ -130,6 +130,28 @@ export default function HomeScreen() {
     }
   };
 
+  const handleExportPdf = async (sessionId: string) => {
+    try {
+      const filepath = await sessionService.exportSessionPdf(sessionId, {
+        ownerName: "WalkSense User",
+        includeSignature: true,
+      });
+
+      try {
+        await Share.share({
+          url: filepath,
+          title: "Export Session PDF",
+          message: "Session WalkSense exportée en PDF",
+        });
+      } catch {
+        Alert.alert("✅ PDF généré", `Fichier sauvegardé :\n${filepath}`);
+      }
+    } catch (error) {
+      console.error("handleExportPdf error:", error);
+      Alert.alert("❌ Erreur", "Impossible d'exporter en PDF");
+    }
+  };
+
   /**
    * Formater la date
    */
@@ -332,7 +354,11 @@ export default function HomeScreen() {
 
         {photoItems.length === 0 ? (
           <View style={styles.galleryEmpty}>
-            <Ionicons name="images-outline" size={42} color={COLORS.textTertiary} />
+            <Ionicons
+              name="images-outline"
+              size={42}
+              color={COLORS.textTertiary}
+            />
             <Text style={styles.galleryEmptyTitle}>Aucune photo</Text>
             <Text style={styles.galleryEmptyText}>
               Ajoutez une photo graduee depuis une trouvaille.
@@ -597,7 +623,10 @@ export default function HomeScreen() {
               <View style={styles.detailsRow}>
                 <Text style={styles.detailsLabel}>Photos :</Text>
                 <Text style={styles.detailsValue}>
-                  {selectedSession.events.filter((event) => event.photoUri).length}
+                  {
+                    selectedSession.events.filter((event) => event.photoUri)
+                      .length
+                  }
                 </Text>
               </View>
 
@@ -780,6 +809,18 @@ export default function HomeScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => handleExportPdf(selectedSession.id)}
+              >
+                <Ionicons
+                  name="document-outline"
+                  size={20}
+                  color={COLORS.primary}
+                />
+                <Text style={styles.actionButtonText}>Exporter PDF</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={[styles.actionButton, styles.actionButtonDanger]}
                 onPress={() => handleDeleteSession(selectedSession.id)}
               >
@@ -826,7 +867,9 @@ export default function HomeScreen() {
                   <Ionicons
                     name="images-outline"
                     size={20}
-                    color={totalPhotos === 0 ? COLORS.textTertiary : COLORS.accent}
+                    color={
+                      totalPhotos === 0 ? COLORS.textTertiary : COLORS.accent
+                    }
                   />
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -937,7 +980,9 @@ export default function HomeScreen() {
   );
 }
 
-function formatPhotoScale(scale: NonNullable<Session["events"][number]["photoScale"]>) {
+function formatPhotoScale(
+  scale: NonNullable<Session["events"][number]["photoScale"]>,
+) {
   switch (scale) {
     case "coin":
       return "piece";

@@ -1,9 +1,9 @@
 import { getCommune } from "@/src/services/geocodingService";
 import {
-  GpsPoint,
-  MarkedEvent,
-  Session,
-  sessionService,
+    GpsPoint,
+    MarkedEvent,
+    Session,
+    sessionService,
 } from "@/src/services/sessionService";
 import * as Location from "expo-location";
 import { useCallback, useMemo, useState } from "react";
@@ -168,11 +168,11 @@ export function useSession() {
     async (distance: number, duration: number) => {
       if (!session) return null;
       try {
-        const updated = await sessionService.endSession(session.id, {
-          endTime: Date.now(),
+        const updated = await sessionService.endSession(
+          session.id,
           distance,
           duration,
-        });
+        );
         setSession(null);
         return updated;
       } catch (err) {
@@ -193,14 +193,16 @@ export function useSession() {
     ) => {
       if (!session) return false;
       try {
-        await sessionService.classifyEvent(
-          session.id,
-          eventId,
+        const event = session.events.find((e) => e.id === eventId);
+        if (!event) return false;
+
+        await sessionService.updateEvent(session.id, {
+          ...event,
           classification,
           notes,
           photoScale,
           photoUri,
-        );
+        });
         setSession((prev) =>
           prev
             ? {

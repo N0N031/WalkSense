@@ -108,11 +108,9 @@ function SessionMap(
     longitudeDelta: 0.005,
   };
 
-  // ✅ PERF CRITIQUE : limite à 500 points (terrain safe)
-  const polyline = useMemo(() => {
-    if (gpsTrace.length === 0) return [];
-    const slice = gpsTrace.length > 500 ? gpsTrace.slice(-500) : gpsTrace;
-    return slice.map((p) => ({
+  const polylineData = useMemo(() => {
+    const limitedPoints = gpsTrace.slice(-500);
+    return limitedPoints.map((p) => ({
       latitude: p.lat,
       longitude: p.lon,
     }));
@@ -132,7 +130,7 @@ function SessionMap(
   }, [userLocation]);
 
   const fitTrace = useCallback(() => {
-    const coords = polyline.length > 0 ? [...polyline] : [];
+    const coords = polylineData.length > 0 ? [...polylineData] : [];
     if (userLocation) {
       coords.push({
         latitude: userLocation.latitude,
@@ -145,7 +143,7 @@ function SessionMap(
       edgePadding: { top: 80, right: 72, bottom: 80, left: 48 },
       animated: true,
     });
-  }, [polyline, userLocation]);
+  }, [polylineData, userLocation]);
 
   useImperativeHandle(
     ref,
@@ -207,12 +205,14 @@ function SessionMap(
           );
         })}
 
-        {polyline.length > 1 && (
+        {polylineData.length > 1 && (
           <Polyline
-            coordinates={polyline}
-            strokeColor={mapType === "satellite" ? "#00ccff" : COLORS.gpsTrace}
-            strokeWidth={3}
-            zIndex={10}
+            coordinates={polylineData}
+            strokeColor={COLORS.gpsTrace}
+            strokeWidth={2.5}
+            lineDashPhase={0}
+            geodesic={true}
+            tappable={false}
           />
         )}
 
