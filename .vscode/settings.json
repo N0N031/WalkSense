@@ -6,5 +6,27 @@
   },
   "claudeCode.allowDangerouslySkipPermissions": true,
   "continue.enableConsole": true,
-  "continue.enableQuickActions": true
+  "continue.enableQuickActions": true,
+  "robotcode.disableExtension": true,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.expo/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/android/**": true,
+    "**/ios/**": true,
+    "**/_codex_context/archive/**": true,
+    "**/_codex_context/master_pack/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.expo": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/android": true,
+    "**/ios": true,
+    "**/_codex_context/archive": true,
+    "**/_codex_context/master_pack": true
+  },
+  "typescript.tsserver.maxTsServerMemory": 2048
 }

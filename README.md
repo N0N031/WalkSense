@@ -24,6 +24,26 @@ npm install
 npx expo start
 ```
 
+## Configuration EAS
+
+Les builds Android EAS ont besoin d'une cle Google Maps Android dans
+`GOOGLE_MAPS_ANDROID_API_KEY`. La valeur doit etre une cle Android valide
+creee dans Google Cloud, avec l'API Maps SDK for Android activee.
+
+Pour un build APK ou production, ajoute la variable dans l'environnement EAS
+utilise par le profil:
+
+```bash
+npx eas-cli@latest env:create --environment production --name GOOGLE_MAPS_ANDROID_API_KEY --value <AIza...> --visibility sensitive
+```
+
+Les profils `apk` et `production` utilisent actuellement l'environnement
+`production`. Le profil `preview` utilise `preview`, et `development` utilise
+`development`.
+
+En local, copie `.env.example` vers `.env.local` ou `.env`, puis renseigne la
+cle. Les fichiers `.env` locaux sont ignores par Git.
+
 ## Architecture
 
 ```text

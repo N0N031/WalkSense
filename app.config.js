@@ -1,13 +1,28 @@
-const googleMapsAndroidApiKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY;
+const googleMapsAndroidApiKey =
+  process.env.GOOGLE_MAPS_ANDROID_API_KEY?.trim();
+
+const easBuildProfile = process.env.EAS_BUILD_PROFILE || "current";
+
+if (!googleMapsAndroidApiKey?.startsWith("AIza")) {
+  throw new Error(
+    `GOOGLE_MAPS_ANDROID_API_KEY invalide ou absente.\n` +
+      `Profil EAS actif : ${easBuildProfile}\n` +
+      `Commande : eas env:create`,
+  );
+}
 
 if (
   process.env.EAS_BUILD === "true" &&
   (!googleMapsAndroidApiKey ||
-    googleMapsAndroidApiKey === "TA_CLE_GOOGLE_MAPS" ||
-    !googleMapsAndroidApiKey.startsWith("AIza"))
+    googleMapsAndroidApiKey === "TA_CLE_GOOGLE_MAPS")
 ) {
   throw new Error(
-    "GOOGLE_MAPS_ANDROID_API_KEY must be set to a valid Android Google Maps API key for EAS builds.",
+    [
+      "GOOGLE_MAPS_ANDROID_API_KEY must be set for EAS Android builds.",
+      `Active EAS build profile: ${easBuildProfile}.`,
+      "Set it in the EAS environment used by that profile, for example:",
+      "eas env:create --environment production --name GOOGLE_MAPS_ANDROID_API_KEY --value <google-maps-android-api-key> --visibility sensitive",
+    ].join(" "),
   );
 }
 

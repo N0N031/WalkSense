@@ -34,7 +34,9 @@ expo-start*.log
 *.pem
 
 # local env files
-.env*.local
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -53,3 +55,25 @@ app-example
 RockSense_*
 GeoSense_*
 WalkSense_Referentiel_*
+
+# Local Codex / project context
+_codex_context/
+# Logs
+*.log
+debug.log
+hs_err_pid*.log
+replay_pid*.log
+
+# Artefacts build
+*.br
+*.txt
+
+# IA locale (hors repo)
+.gbrain/
+
+# VS Code backup
+.vscode/*.backup.json
+
+# Env
+.env*
+!.env.example

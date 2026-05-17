@@ -35,3 +35,84 @@
 ## Brief Claude
 Commencer chaque conversation par :
 "Contexte CLAUDE.md charge. Sprint en cours : [NOM DU SPRINT]"
+
+## Installation IA locale
+- Tout le flux IA local doit rester 100% local.
+- Ne jamais utiliser ni afficher de vraie cle `sk-ant`.
+- Variables attendues pour le mode local dedie :
+  - `ANTHROPIC_BASE_URL=http://127.0.0.1:11434`
+  - `ANTHROPIC_API_KEY=sk-local`
+- Ollama est le LLM local.
+- Modele local courant : `qwen2.5-coder:1.5b`.
+- Claude Code local est une interface possible, pas la source de verite.
+- Si Claude Code direct vers Ollama echoue, verifier la compatibilite Anthropic ou utiliser un proxy compatible.
+
+## Stack officielle
+- Expo SDK 54.
+- React Native / React 19.
+- TypeScript strict.
+- Expo Router.
+- `expo-sqlite` local-first.
+- `expo-location`.
+- `react-native-maps`.
+- `expo-crypto` SHA-256.
+- AsyncStorage.
+- Android-first, offline-first, privacy-first.
+
+## Regles absolues WalkSense
+- Ne jamais transformer WalkSense en backend Flask/Python.
+- Python, Ollama et Gbrain sont uniquement des outils locaux auxiliaires.
+- Ne pas installer Docker pour ce flux local.
+- Ne pas refondre l'app sans demande explicite.
+- Ne pas modifier le code mobile pour une tache d'installation IA locale.
+- Garder SQLite et l'app Expo comme coeur officiel.
+
+## Priorite GPS
+- Stabiliser GPS live.
+- Surveiller `useGps.ts`.
+- Surveiller `app/(tabs)/explore.tsx`.
+- Surveiller `SessionMap.native.tsx`.
+- Garantir autosave et persistence locale.
+- Distinguer clairement RAW et FILTERED.
+
+## Doctrine produit
+- WalkSense doit rester utile sur le terrain, sans cloud obligatoire.
+- Les donnees locales et la confiance utilisateur priment.
+- Les sessions verrouillees doivent rester immuables.
+- Les changements doivent etre petits, testables et documentes.
+
+## IFT
+- IFT couvre qualite documentaire, coherence GPS, anti-cheat et scores session/global.
+- STOP/WALK/BIKE/CAR releve du mobility analyzer.
+- STOP/WALK/BIKE/CAR ne constitue pas un IFT complet.
+- Toute logique IFT doit etre explicable et verifiable.
+
+## Anti-cheat IFT
+- Detecter incoherences GPS, sauts suspects, vitesses impossibles et preuves documentaires faibles.
+- Ne pas penaliser sans signal explicable.
+- Preferer des scores auditables a des boites noires.
+
+## MapSense et Geo-Fusion
+- MapSense est une evolution cartographique, pas une obligation V1.
+- Geo-Fusion doit consolider les signaux terrain sans casser le local-first.
+- Toute evolution doit respecter la stabilite V1 avant extension.
+
+## GBRAIN
+- Memoire locale attendue : `A:\ai-stack\gbrain`.
+- Jonction repo attendue : `.gbrain`.
+- Gbrain conserve contexte, decisions, agents et changelog local.
+- Gbrain n'est pas une base de donnees applicative WalkSense.
+
+## Workflow
+1. Plan court.
+2. Code minimal.
+3. Test cible.
+4. Documentation locale si pertinent.
+
+## Commandes de validation
+- `ollama list`
+- `Invoke-RestMethod http://127.0.0.1:11434/api/tags`
+- `Get-ChildItem Env:ANTHROPIC*`
+- `Get-Command claude -ErrorAction SilentlyContinue`
+- `Test-Path .gbrain\memory\project_state.md`
+- `npm run lint`
