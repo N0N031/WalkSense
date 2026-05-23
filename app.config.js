@@ -1,3 +1,8 @@
+// Load .env for local builds (EAS cloud ignores this, uses EAS secrets)
+try {
+  require("dotenv").config();
+} catch {}
+
 const googleMapsAndroidApiKey =
   process.env.GOOGLE_MAPS_ANDROID_API_KEY?.trim();
 
