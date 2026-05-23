@@ -9,21 +9,25 @@ interface SessionBottomSheetProps {
   events: MarkedEvent[];
   onAddMarker: () => void;
   onEventPress: (event: MarkedEvent) => void;
+  filtered?: boolean;
 }
 
 export default function SessionBottomSheet({
   events,
   onAddMarker,
   onEventPress,
+  filtered = false,
 }: SessionBottomSheetProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>MARQUEURS</Text>
+          <Text style={styles.title}>
+            {filtered ? "NON CLASSÉS" : "MARQUEURS"}
+          </Text>
           <Text style={styles.subtitle}>
             {events.length === 0
-              ? "Aucun evenement"
+              ? filtered ? "Tous classés ✓" : "Aucun evenement"
               : `${events.length} evenement${events.length > 1 ? "s" : ""}`}
           </Text>
         </View>

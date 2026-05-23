@@ -81,7 +81,6 @@ export default function ExploreScreen() {
   const [toast, setToast] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<MarkedEvent | null>(null);
   const [classifyVisible, setClassifyVisible] = useState(false);
-  const [initialDistance, setInitialDistance] = useState(0);
   const [startGpsAccuracy, setStartGpsAccuracy] = useState<number | null>(null);
   const [redFilter, setRedFilter] = useState(false);
   const [panelsCollapsed, setPanelsCollapsed] = useState(false);
@@ -154,8 +153,6 @@ export default function ExploreScreen() {
 
       startTracking((point) => persistGpsPoint(newSession.id, point));
       startTimer();
-
-      setInitialDistance(0);
       setRedFilter(false);
 
       showToast("Session demarree ✓", "success");
@@ -188,10 +185,10 @@ export default function ExploreScreen() {
 
   // ✅ Handle pause
   const handlePause = useCallback(() => {
-    pause();
+    pause(totalDistance);
     pauseTimer();
     setToast("Session en pause");
-  }, [pause, pauseTimer]);
+  }, [pause, pauseTimer, totalDistance]);
 
   // ✅ Handle resume
   const handleResume = useCallback(() => {
@@ -319,8 +316,6 @@ export default function ExploreScreen() {
           if (!isActive) return;
 
           activeSessionIdRef.current = current.id;
-
-          setInitialDistance(current.distance ?? 0);
           startTimer();
           startTracking((point) => persistGpsPoint(current.id, point));
         })
@@ -530,9 +525,10 @@ export default function ExploreScreen() {
 
       {!panelsCollapsed ? (
         <SessionBottomSheet
-          events={session.events}
+          events={redFilter ? session.events.filter((e) => !e.classification) : session.events}
           onAddMarker={handleAddMarker}
           onEventPress={openClassify}
+          filtered={redFilter}
         />
       ) : (
         <View
@@ -547,7 +543,9 @@ export default function ExploreScreen() {
           >
             <Ionicons name="add" size={24} color={COLORS.primary} />
             <Text style={styles.compactActionText}>
-              {session.events.length}
+              {redFilter
+                ? session.events.filter((e) => !e.classification).length
+                : session.events.length}
             </Text>
           </TouchableOpacity>
 

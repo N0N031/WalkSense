@@ -140,11 +140,11 @@ class SessionService {
     }
   }
 
-  async pauseSession(): Promise<Session | null> {
+  async pauseSession(distanceMeters: number): Promise<Session | null> {
     try {
       const session = await this.getCurrentSession();
       if (!session) return null;
-      const updated: Session = { ...session, status: "paused" };
+      const updated: Session = { ...session, status: "paused", distance: distanceMeters };
       await sessionRepository.updateSession(updated);
       return updated;
     } catch (error) {

@@ -142,9 +142,9 @@ export function useSession() {
     [session],
   );
 
-  const pause = useCallback(async () => {
+  const pause = useCallback(async (distanceMeters: number) => {
     try {
-      const updated = await sessionService.pauseSession();
+      const updated = await sessionService.pauseSession(distanceMeters);
       if (updated) setSession(updated);
       return updated;
     } catch (err) {

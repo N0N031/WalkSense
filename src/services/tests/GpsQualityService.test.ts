@@ -27,4 +27,29 @@ export function runGpsQualityServiceTests(): void {
     "LOW",
     "LOW threshold",
   );
+  expectEqual(
+    calculateConfidenceLevel({ accuracyMeters: 0 }),
+    "HIGH",
+    "accuracy=0 should be HIGH",
+  );
+  expectEqual(
+    calculateConfidenceLevel({ accuracyMeters: 999 }),
+    "LOW",
+    "very poor GPS accuracy (999m) should be LOW",
+  );
+  expectEqual(
+    calculateConfidenceLevel({ accuracyMeters: 3, pointAgeMs: 0 }),
+    "HIGH",
+    "age=0 should be HIGH",
+  );
+  expectEqual(
+    calculateConfidenceLevel({ accuracyMeters: 3, speedMps: 10 }),
+    "HIGH",
+    "speedMps present but ignored should be HIGH",
+  );
+  expectEqual(
+    calculateConfidenceLevel({ accuracyMeters: 3, trajectoryStability: 0.9 }),
+    "HIGH",
+    "trajectoryStability present but ignored should be HIGH",
+  );
 }

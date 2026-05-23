@@ -34,7 +34,25 @@
 
 ## Brief Claude
 Commencer chaque conversation par :
-"Contexte CLAUDE.md charge. Sprint en cours : [NOM DU SPRINT]"
+1. Lire `/ai-stack/gbrain/memory/handoff.md`
+2. Annoncer : "Handoff lu. Session précédente : [agent] | Tâche : [tâche] | Prochaine action : [action exacte]"
+3. Proposer de reprendre ou de changer de tâche
+
+## Protocole handoff (écriture obligatoire)
+Après chaque fichier modifié, mettre à jour `/ai-stack/gbrain/memory/handoff.md` :
+- Ajouter le fichier dans "Fichiers modifiés cette session"
+- Cocher [x] les étapes terminées, marquer [⚡] l'étape en cours
+- Mettre à jour "Prochaine action exacte" avec fichier + fonction + objectif précis
+- Mettre à jour "Décisions non visibles dans le code" si décision prise
+
+Règle : le handoff doit permettre à Codex de reprendre sans poser de question.
+
+## Orchestration IA locale
+- walksense-coder (Ollama) : `curl http://localhost:11434/api/generate -d '{"model":"walksense-coder",...}'`
+- Déléguer à walksense-coder : génération focalisée >30 lignes, audit de diff ciblé
+- Ne jamais déléguer : GPS/session logic, auth, architecture multi-fichiers
+- Régénérer walksense-coder après gbrain update : `bash /ai-stack/scripts/update-walksense-coder.sh`
+- Gates TSC : utiliser node + typescript du projet (les path aliases @/ nécessitent le tsconfig)
 
 ## Installation IA locale
 - Tout le flux IA local doit rester 100% local.
