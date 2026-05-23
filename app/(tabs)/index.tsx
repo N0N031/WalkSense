@@ -11,7 +11,6 @@ import {
     Alert,
     FlatList,
     Image,
-    ImageBackground,
     Modal,
     Pressable,
     ScrollView,
@@ -24,7 +23,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PremiumBackground from "@/src/components/PremiumBackground";
-import PremiumHeader from "@/src/components/PremiumHeader";
 import { COLORS } from "@/src/constants/colors";
 import { Session, sessionService } from "@/src/services/sessionService";
 import { formatDistanceMeters } from "@/src/utils/format";
@@ -425,9 +423,15 @@ export default function HomeScreen() {
         selectionMode &&
           selectedSessionIds.includes(item.id) &&
           styles.sessionCardSelected,
-        pressed && { opacity: 0.7 },
+        pressed && { opacity: 0.78 },
       ]}
     >
+      <View style={styles.sparkline} pointerEvents="none">
+        <View style={[styles.sparklineBar, styles.sparklineBarLow]} />
+        <View style={[styles.sparklineBar, styles.sparklineBarMid]} />
+        <View style={[styles.sparklineBar, styles.sparklineBarHigh]} />
+      </View>
+
       {selectionMode ? (
         <View style={styles.selectionCheck}>
           <Ionicons
@@ -445,6 +449,55 @@ export default function HomeScreen() {
           />
         </View>
       ) : null}
+
+      <View
+        style={[
+          styles.sessionCardHeader,
+          selectionMode && styles.sessionCardHeaderSelecting,
+        ]}
+      >
+        <View style={styles.sessionCardCopy}>
+          <View style={styles.sessionDateRow}>
+            <View style={styles.sessionDot} />
+            <Text style={styles.sessionCardDate}>
+              {formatDate(item.startTime)}
+            </Text>
+          </View>
+          <Text style={styles.sessionPlace} numberOfLines={1}>
+            {item.commune?.trim() || "Session terrain"}
+          </Text>
+        </View>
+        <View style={styles.sessionRightRail}>
+          {item.hash ? (
+            <Ionicons name="lock-closed" size={24} color={COLORS.accent} />
+          ) : null}
+          <View style={styles.sessionCardBadge}>
+            <Text style={styles.sessionCardBadgeText}>{item.events.length}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.sessionCardStats}>
+        <View style={styles.statItem}>
+          <Ionicons name="time-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.statLabel}>{formatDuration(item.duration)}</Text>
+        </View>
+
+        <View style={styles.statItem}>
+          <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
+          <Text style={styles.statLabel}>
+            {formatDistanceMeters(item.distance)}
+          </Text>
+        </View>
+
+        <View style={styles.statItem}>
+          <Ionicons name="search-outline" size={16} color={COLORS.accent} />
+          <Text style={styles.statLabelAccent}>
+            {item.events.length} trouvaille{item.events.length > 1 ? "s" : ""}
+          </Text>
+        </View>
+      </View>
+
       {(() => {
         const refillStats = getRefillStats(item);
         return refillStats.total > 0 ? (
@@ -472,67 +525,6 @@ export default function HomeScreen() {
           </View>
         ) : null;
       })()}
-      <View
-        style={[
-          styles.sessionCardHeader,
-          selectionMode && styles.sessionCardHeaderSelecting,
-        ]}
-      >
-        <View>
-          <Text style={styles.sessionCardDate}>
-            {formatDate(item.startTime)}
-          </Text>
-          <View style={styles.statusChip}>
-            <Ionicons
-              name={
-                item.status === "completed"
-                  ? "checkmark-circle"
-                  : "radio-button-on"
-              }
-              size={13}
-              color={
-                item.status === "completed" ? COLORS.success : COLORS.warning
-              }
-            />
-            <Text style={styles.sessionCardSubtitle}>
-              {item.status === "completed" ? "Terminée" : "En cours"}
-            </Text>
-            {item.hash ? (
-              <>
-                <Text style={styles.sessionCardSubtitle}> · </Text>
-                <Ionicons name="lock-closed" size={11} color={COLORS.accent} />
-                <Text
-                  style={[styles.sessionCardSubtitle, { color: COLORS.accent }]}
-                >
-                  Verrouillée
-                </Text>
-              </>
-            ) : null}
-          </View>
-        </View>
-        <View style={styles.sessionCardBadge}>
-          <Text style={styles.sessionCardBadgeText}>{item.events.length}</Text>
-        </View>
-      </View>
-
-      <View style={styles.sessionCardStats}>
-        <View style={styles.statItem}>
-          <Ionicons name="timer-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.statLabel}>{formatDuration(item.duration)}</Text>
-        </View>
-
-        <View style={styles.statItem}>
-          <Ionicons name="navigate-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.statLabel}>
-            {formatDistanceMeters(item.distance)}
-          </Text>
-        </View>
-
-        <View style={styles.statItem}>
-          <Ionicons name="search-outline" size={16} color={COLORS.primary} />
-          <Text style={styles.statLabel}>{item.events.length} trouvailles</Text>
-        </View>
-      </View>
     </Pressable>
   );
 
@@ -844,61 +836,87 @@ export default function HomeScreen() {
    */
   return (
     <PremiumBackground>
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ImageBackground
-          source={require("@/assets/images/walksense-splash-bg.png")}
-          resizeMode="cover"
-          style={styles.hero}
-          imageStyle={styles.heroImage}
-        >
-          <View style={styles.heroOverlay} />
-          <PremiumHeader
-            style={styles.header}
-            rightContent={
-              <View style={styles.headerActions}>
-                <TouchableOpacity
-                  style={[
-                    styles.settingsButton,
-                    totalPhotos === 0 && styles.headerButtonDisabled,
-                  ]}
-                  onPress={() => setShowPhotoGallery(true)}
-                  disabled={totalPhotos === 0}
-                >
-                  <Ionicons
-                    name="images-outline"
-                    size={20}
-                    color={
-                      totalPhotos === 0 ? COLORS.textTertiary : COLORS.accent
-                    }
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.settingsButton}
-                  onPress={toggleSelectionMode}
-                >
-                  <Ionicons
-                    name={selectionMode ? "close" : "checkbox-outline"}
-                    size={20}
-                    color={COLORS.text}
-                  />
-                </TouchableOpacity>
-              </View>
-            }
-          />
+      <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.hero}>
+          <View style={styles.header}>
+            <Image
+              source={require("@/assets/images/walksense-mark.png")}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
+            <View style={styles.headerDivider} />
+            <View style={styles.headerCopy}>
+              <Text style={styles.headerTitle}>WalkSense</Text>
+              <Text style={styles.headerSubtitle}>Prospection · Terrain</Text>
+            </View>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={[
+                  styles.settingsButton,
+                  totalPhotos === 0 && styles.headerButtonDisabled,
+                ]}
+                onPress={() => setShowPhotoGallery(true)}
+                disabled={totalPhotos === 0}
+              >
+                <Ionicons
+                  name="images-outline"
+                  size={19}
+                  color={
+                    totalPhotos === 0 ? COLORS.textTertiary : COLORS.accent
+                  }
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.settingsButton}
+                onPress={toggleSelectionMode}
+              >
+                <Ionicons
+                  name={selectionMode ? "close" : "options-outline"}
+                  size={19}
+                  color={COLORS.accent}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <View style={styles.statsGrid}>
             <StatTile
               value={activeCount}
               label="En cours"
+              subLabel="Sessions"
               icon="radio-button-on"
+              tone="green"
             />
             <StatTile
               value={completedCount}
               label="Terminees"
+              subLabel="Verrouillees"
               icon="checkmark-circle"
+              tone="gold"
             />
-            <StatTile value={totalEvents} label="Total" icon="search-outline" />
+            <StatTile
+              value={totalEvents}
+              label="Total"
+              subLabel="Trouvailles"
+              icon="search-outline"
+              tone="gold"
+            />
           </View>
-        </ImageBackground>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionCaption}>Historique</Text>
+          <TouchableOpacity style={styles.filterButton} onPress={toggleSelectionMode}>
+            <Ionicons
+              name={selectionMode ? "close" : "filter-outline"}
+              size={15}
+              color={COLORS.accent}
+            />
+            <Text style={styles.filterText}>
+              {selectionMode ? "Fermer" : "Filtrer"}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {selectionMode ? (
           <View style={styles.selectionToolbar}>
@@ -1054,19 +1072,26 @@ function escapeXml(value: string): string {
 function StatTile({
   value,
   label,
+  subLabel,
   icon,
+  tone,
 }: {
   value: number;
   label: string;
+  subLabel: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
+  tone: "green" | "gold";
 }) {
+  const iconColor = tone === "green" ? COLORS.primary : COLORS.accent;
+
   return (
     <View style={styles.statTile}>
-      <Text style={styles.statTileValue}>{value}</Text>
-      <View style={styles.statTileLabelRow}>
-        <Ionicons name={icon} size={11} color={COLORS.primary} />
-        <Text style={styles.statTileLabel}>{label}</Text>
+      <View style={styles.statTileTop}>
+        <Text style={styles.statTileValue}>{value}</Text>
+        <Ionicons name={icon} size={17} color={iconColor} />
       </View>
+      <Text style={styles.statTileLabel}>{label}</Text>
+      <Text style={styles.statTileSubLabel}>{subLabel}</Text>
     </View>
   );
 }
@@ -1083,53 +1108,158 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
 
-  // ─────────────────────────────────────────────────────────────────
-  // HEADER
-  // ─────────────────────────────────────────────────────────────────
-
   hero: {
     marginHorizontal: 14,
     marginTop: 0,
-    marginBottom: 10,
-    minHeight: 200,
-    overflow: "hidden",
-    borderRadius: 28,
+    marginBottom: 14,
+    padding: 14,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.glassStrong,
-  },
-
-  heroImage: {
-    opacity: 0.88,
-  },
-
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.52)",
+    borderColor: "rgba(80,230,78,0.28)",
+    backgroundColor: "rgba(5,12,7,0.92)",
+    shadowColor: "#50E64E",
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
   },
 
   header: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 14,
+    minHeight: 72,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
 
-  settingsButton: {
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 21,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.glass,
+  headerLogo: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
   },
+
+  headerDivider: {
+    width: 1,
+    height: 42,
+    backgroundColor: "rgba(212,175,55,0.32)",
+  },
+
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  headerTitle: {
+    color: "#D4AF37",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+
+  headerSubtitle: {
+    marginTop: 3,
+    color: "#B8B8B8",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 1.2,
+  },
+
   headerActions: {
     flexDirection: "row",
     gap: 8,
   },
+
+  settingsButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.32)",
+    backgroundColor: "rgba(2,7,4,0.92)",
+  },
+
   headerButtonDisabled: {
     opacity: 0.42,
+  },
+
+  statsGrid: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12,
+  },
+
+  statTile: {
+    flex: 1,
+    minHeight: 98,
+    justifyContent: "space-between",
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(80,230,78,0.28)",
+    backgroundColor: "rgba(5,12,7,0.60)",
+  },
+
+  statTileTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  statTileValue: {
+    color: "#F5F1E8",
+    fontSize: 28,
+    fontWeight: "900",
+    letterSpacing: -1,
+    fontVariant: ["tabular-nums"],
+  },
+
+  statTileLabel: {
+    marginTop: 8,
+    color: "#B8B8B8",
+    fontSize: 12,
+    fontWeight: "900",
+  },
+
+  statTileSubLabel: {
+    marginTop: 2,
+    color: "#787268",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: 18,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+
+  sectionCaption: {
+    color: "#D4AF37",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 2.4,
+    textTransform: "uppercase",
+  },
+
+  filterButton: {
+    height: 34,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(212,175,55,0.32)",
+    backgroundColor: "rgba(212,175,55,0.06)",
+  },
+
+  filterText: {
+    color: "#D4AF37",
+    fontSize: 12,
+    fontWeight: "900",
   },
 
   selectionToolbar: {
@@ -1141,22 +1271,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.glassStrong,
+    borderColor: "rgba(212,175,55,0.32)",
+    backgroundColor: "rgba(5,12,7,0.92)",
   },
 
   selectionTitle: {
-    color: COLORS.text,
+    color: "#F5F1E8",
     fontSize: 14,
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
   selectionLink: {
-    color: COLORS.accent,
+    color: "#D4AF37",
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "800",
     marginTop: 4,
   },
 
@@ -1172,10 +1302,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.accent,
-    backgroundColor: "rgba(212, 175, 55, 0.10)",
+    borderColor: "rgba(212,175,55,0.32)",
+    backgroundColor: "rgba(212,175,55,0.06)",
   },
 
   selectionActionDisabled: {
@@ -1183,140 +1313,180 @@ const styles = StyleSheet.create({
   },
 
   selectionActionText: {
-    color: COLORS.accent,
+    color: "#D4AF37",
     fontSize: 12,
     fontWeight: "900",
   },
 
-  statsGrid: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: "auto",
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-  },
-
-  statTile: {
-    flex: 1,
-    minHeight: 74,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: "rgba(2, 8, 5, 0.76)",
-  },
-
-  statTileValue: {
-    color: COLORS.text,
-    fontSize: 24,
-    fontWeight: "900",
-    fontVariant: ["tabular-nums"],
-  },
-
-  statTileLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-
-  statTileLabel: {
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-  },
-
-  // ─────────────────────────────────────────────────────────────────
-  // LIST
-  // ─────────────────────────────────────────────────────────────────
-
   listContent: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 4,
+    paddingBottom: 12,
     gap: 12,
   },
 
   sessionCard: {
-    backgroundColor: COLORS.glass,
-    borderRadius: 14,
-    padding: 16,
+    overflow: "hidden",
+    padding: 14,
+    minHeight: 138,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: COLORS.glowGreen,
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    marginBottom: 8,
+    borderColor: "rgba(80,230,78,0.28)",
+    backgroundColor: "rgba(5,12,7,0.92)",
+    shadowColor: "#50E64E",
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    elevation: 7,
   },
 
   sessionCardSelected: {
-    borderColor: COLORS.accent,
-    backgroundColor: "rgba(12, 26, 12, 0.92)",
+    borderColor: "rgba(212,175,55,0.70)",
+    backgroundColor: "rgba(10,20,12,0.96)",
+  },
+
+  sparkline: {
+    position: "absolute",
+    right: 12,
+    bottom: 10,
+    width: 108,
+    height: 46,
+    opacity: 0.35,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "flex-end",
+    gap: 7,
+  },
+
+  sparklineBar: {
+    width: 28,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    backgroundColor: "rgba(212,175,55,0.55)",
+  },
+
+  sparklineBarLow: {
+    height: 16,
+  },
+
+  sparklineBarMid: {
+    height: 29,
+  },
+
+  sparklineBarHigh: {
+    height: 42,
   },
 
   selectionCheck: {
     position: "absolute",
     top: 12,
     right: 12,
-    zIndex: 2,
-    width: 28,
-    height: 28,
+    zIndex: 4,
+    width: 30,
+    height: 30,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 14,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: COLORS.accent,
-    backgroundColor: COLORS.glassStrong,
+    borderColor: "rgba(212,175,55,0.70)",
+    backgroundColor: "rgba(2,7,4,0.92)",
   },
 
   sessionCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 16,
   },
 
   sessionCardHeaderSelecting: {
     paddingRight: 36,
   },
 
-  sessionCardDate: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.text,
+  sessionCardCopy: {
+    flex: 1,
+    minWidth: 0,
   },
 
-  statusChip: {
+  sessionDateRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginTop: 4,
+    gap: 7,
   },
 
-  sessionCardSubtitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
+  sessionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#50E64E",
+    shadowColor: "#50E64E",
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+  },
+
+  sessionCardDate: {
+    color: "#B8B8B8",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+
+  sessionPlace: {
+    marginTop: 8,
+    color: "#F5F1E8",
+    fontSize: 17,
+    fontWeight: "900",
+  },
+
+  sessionRightRail: {
+    alignItems: "center",
+    gap: 8,
   },
 
   sessionCardBadge: {
-    backgroundColor: "transparent",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    minWidth: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: COLORS.accent,
+    borderColor: "rgba(212,175,55,0.70)",
+    backgroundColor: "rgba(212,175,55,0.10)",
   },
 
   sessionCardBadgeText: {
-    color: COLORS.accent,
+    color: "#D4AF37",
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "900",
+    fontVariant: ["tabular-nums"],
   },
 
   sessionCardStats: {
     flexDirection: "row",
-    gap: 12,
-    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+  },
+
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 1,
+  },
+
+  statLabel: {
+    color: "#F5F1E8",
+    fontSize: 12,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
+  },
+
+  statLabelAccent: {
+    color: "#D4AF37",
+    fontSize: 12,
+    fontWeight: "900",
+    fontVariant: ["tabular-nums"],
   },
 
   refillSummary: {
@@ -1324,44 +1494,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
+    marginTop: 12,
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.success,
-    marginBottom: 10,
+    borderColor: "#50E64E",
+    backgroundColor: "rgba(80,230,78,0.06)",
   },
 
   refillSummaryPending: {
-    borderColor: COLORS.warning,
+    borderColor: "#D4AF37",
+    backgroundColor: "rgba(212,175,55,0.06)",
   },
 
   refillSummaryText: {
-    color: COLORS.success,
+    color: "#50E64E",
     fontSize: 11,
-    fontWeight: "800",
+    fontWeight: "900",
   },
 
   refillSummaryTextPending: {
-    color: COLORS.warning,
+    color: "#D4AF37",
   },
-
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    flex: 1,
-  },
-
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.text,
-    fontWeight: "600",
-  },
-
-  // ─────────────────────────────────────────────────────────────────
-  // EMPTY STATE
-  // ─────────────────────────────────────────────────────────────────
 
   emptyContainer: {
     flex: 1,
@@ -1371,21 +1526,17 @@ const styles = StyleSheet.create({
   },
 
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: COLORS.text,
+    fontSize: 21,
+    fontWeight: "900",
+    color: "#F5F1E8",
     marginBottom: 8,
   },
 
   emptySubtitle: {
     fontSize: 14,
-    color: COLORS.textSecondary,
+    color: "#B8B8B8",
     textAlign: "center",
   },
-
-  // ─────────────────────────────────────────────────────────────────
-  // LOADING
-  // ─────────────────────────────────────────────────────────────────
 
   loadingContainer: {
     flex: 1,
@@ -1395,7 +1546,14 @@ const styles = StyleSheet.create({
 
   loadingText: {
     fontSize: 16,
-    color: COLORS.textSecondary,
+    color: "#B8B8B8",
+  },
+
+  statusChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
   },
 
   // ─────────────────────────────────────────────────────────────────

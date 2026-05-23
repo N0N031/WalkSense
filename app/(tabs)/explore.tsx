@@ -3,9 +3,6 @@
 import ClassifySheet from "@/src/components/ClassifySheet";
 import { GpsIndicator } from "@/src/components/GpsIndicator";
 import { MapType, MapTypeToggle } from "@/src/components/MapTypeToggle";
-import PremiumHeader from "@/src/components/PremiumHeader";
-import SessionBottomSheet from "@/src/components/SessionBottomSheet";
-import SessionHud from "@/src/components/SessionHud";
 import SessionMap, { SessionMapHandle } from "@/src/components/SessionMap";
 import Toast, { useToast } from "@/src/components/Toast";
 import { COLORS } from "@/src/constants/colors";
@@ -23,7 +20,6 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Image,
-  ImageBackground,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -335,99 +331,31 @@ export default function ExploreScreen() {
   if (!session || session.status === "completed") {
     return (
       <View style={styles.container}>
-        <ImageBackground
-          source={require("@/assets/images/walksense-splash-bg.png")}
-          resizeMode="cover"
-          style={styles.emptyBackground}
-        >
-          <View style={styles.emptyOverlay} />
-
-          <ScrollView
-            style={styles.emptyScroll}
-            contentContainerStyle={[
-              styles.emptyContent,
-              {
-                paddingTop: insets.top + 12,
-                paddingBottom: Math.max(insets.bottom + 104, 120),
-              },
-            ]}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.emptyBrandHero}>
-              <View style={styles.emptyLogoGlow}>
-                <Image
-                  source={require("@/assets/images/walksense-mark.png")}
-                  style={styles.emptyLogo}
-                  resizeMode="contain"
-                />
-              </View>
-
-              <Text
-                style={styles.emptyBrandTitle}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.82}
-              >
-                WalkSense
-              </Text>
-
-              <Text style={styles.emptyBrandSubtitle} numberOfLines={1}>
-                Terrain Tracking
-              </Text>
-            </View>
-
-            <View style={styles.emptyDivider}>
-              <View style={styles.emptyDividerLine} />
-              <View style={styles.emptyDividerDot} />
-              <View style={styles.emptyDividerLine} />
-            </View>
-
-            <View style={styles.emptyCopyBlock}>
-              <Text
-                style={styles.emptyLead}
-                numberOfLines={3}
-                adjustsFontSizeToFit
-                minimumFontScale={0.82}
-              >
-                Tracez vos prospections terrain avec précision.
-              </Text>
-              <Text
-                style={styles.emptySubcopy}
-                numberOfLines={3}
-                adjustsFontSizeToFit
-                minimumFontScale={0.82}
-              >
-                Enregistrez chaque découverte et restez organisé.
-              </Text>
-            </View>
-
-            <GpsIndicator onAccuracyChange={setStartGpsAccuracy} />
-
-            <TouchableOpacity
-              style={[
-                styles.startButton,
-                !canStartWithGps && styles.startButtonDisabled,
-              ]}
-              onPress={handleStart}
-              disabled={!canStartWithGps}
-            >
-              <Ionicons name="location" size={25} color={COLORS.accent} />
-              <Text
-                style={styles.startText}
-                numberOfLines={2}
-                adjustsFontSizeToFit
-                minimumFontScale={0.72}
-              >
-                DÉMARRER UNE SESSION
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={22}
-                color={COLORS.accent}
-              />
-            </TouchableOpacity>
-          </ScrollView>
-        </ImageBackground>
+        <View style={styles.idleBackdrop}>
+          <View style={styles.radarCircleOuter} />
+          <View style={styles.radarCircleMiddle} />
+          <View style={styles.radarCircleInner} />
+        </View>
+        <ScrollView style={styles.emptyScroll} contentContainerStyle={[styles.emptyContent,{paddingTop: insets.top + 28,paddingBottom: Math.max(insets.bottom + 112, 128)}]} showsVerticalScrollIndicator={false}>
+          <View style={styles.emptyBrandHero}>
+            <View style={styles.emptyLogoGlow}><Image source={require("@/assets/images/walksense-mark.png")} style={styles.emptyLogo} resizeMode="contain" /></View>
+            <Text style={styles.emptyBrandTitle}>WalkSense</Text>
+            <Text style={styles.emptyBrandSubtitle}>PROSPECTION · TERRAIN</Text>
+          </View>
+          <View style={styles.emptyCopyBlock}>
+            <Text style={styles.emptyLead}>Tracez vos prospections terrain avec précision.</Text>
+            <Text style={styles.emptySubcopy}>Sessions GPS, trouvailles et preuves locales, disponibles hors ligne.</Text>
+          </View>
+          <View style={styles.gpsCard}>
+            <View style={styles.gpsBars}><View style={[styles.gpsBar, styles.gpsBarOne]} /><View style={[styles.gpsBar, styles.gpsBarTwo]} /><View style={[styles.gpsBar, styles.gpsBarThree]} /><View style={[styles.gpsBar, styles.gpsBarFour]} /><View style={[styles.gpsBar, styles.gpsBarFive]} /></View>
+            <View style={styles.gpsCopy}><Text style={styles.gpsLabel}>Signal GPS</Text><Text style={styles.gpsValue}>{startGpsAccuracy !== null ? <>{Math.round(startGpsAccuracy)}m · {canStartWithGps ? "Bon" : "Faible"}</> : "Recherche du signal"}</Text></View>
+            <Ionicons name="cellular" size={24} color={COLORS.primary} />
+          </View>
+          <GpsIndicator onAccuracyChange={setStartGpsAccuracy} />
+          <TouchableOpacity style={[styles.startButton,!canStartWithGps && styles.startButtonDisabled]} onPress={handleStart} disabled={!canStartWithGps}>
+            <Ionicons name="location" size={22} color="#1A1305" /><Text style={styles.startText}>DÉMARRER UNE SESSION</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     );
   }
@@ -435,507 +363,109 @@ export default function ExploreScreen() {
   // ✅ View: Active session
   return (
     <View style={styles.container}>
-      <View style={[styles.mapHeader, { top: mapHeaderTop }]}>
-        <PremiumHeader
-          compact
-          style={[styles.brandRow, { flex: 1 }]}
-          rightContent={
-            <View style={styles.headerMapControls}>
-              <MapTypeToggle
-                currentType={sessionMapType}
-                onChange={setSessionMapType}
-                compact
-              />
-              <TouchableOpacity
-                style={[
-                  styles.headerMapControlButton,
-                  !userLocation && styles.headerMapControlDisabled,
-                ]}
-                onPress={() => sessionMapRef.current?.centerOnUser()}
-                disabled={!userLocation}
-              >
-                <Ionicons
-                  name="locate"
-                  size={18}
-                  color={userLocation ? COLORS.primary : COLORS.textTertiary}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.headerMapControlButton}
-                onPress={() => sessionMapRef.current?.fitTrace()}
-              >
-                <Ionicons
-                  name="expand-outline"
-                  size={18}
-                  color={COLORS.accent}
-                />
-              </TouchableOpacity>
-            </View>
-          }
-        />
-      </View>
-
-      <View style={panelsCollapsed ? styles.mapAreaExpanded : styles.mapArea}>
-        <SessionMap
-          ref={sessionMapRef}
-          gpsTrace={gpsTrace}
-          events={session.events ?? []}
-          userLocation={userLocation}
-          onEventPress={openClassify}
-          mapType={sessionMapType}
-        />
-      </View>
-
-      {!panelsCollapsed ? (
-        <SessionHud
-          time={formatDuration(elapsed)}
-          distance={totalDistance}
-          gpsAccuracy={location?.accuracy}
-          isRunning={isRunning}
-        />
-      ) : null}
-
-      <View style={[styles.mapQuickActions, { top: mapControlsTop }]}>
-        <TouchableOpacity
-          style={[
-            styles.mapQuickActionButton,
-            redFilter && styles.redFilterButtonActive,
-          ]}
-          onPress={() => setRedFilter(!redFilter)}
-        >
-          <Ionicons
-            name="filter"
-            size={20}
-            color={redFilter ? COLORS.background : COLORS.accent}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.mapQuickActionButton}
-          onPress={() => setPanelsCollapsed((value) => !value)}
-        >
-          <Ionicons
-            name={panelsCollapsed ? "chevron-up" : "chevron-down"}
-            size={20}
-            color={COLORS.accent}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {!panelsCollapsed ? (
-        <SessionBottomSheet
-          events={redFilter ? session.events.filter((e) => !e.classification) : session.events}
-          onAddMarker={handleAddMarker}
-          onEventPress={openClassify}
-          filtered={redFilter}
-        />
-      ) : (
-        <View
-          style={[
-            styles.compactDock,
-            { bottom: Math.max(insets.bottom, 8) + 156 },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.compactAction}
-            onPress={handleAddMarker}
-          >
-            <Ionicons name="add" size={24} color={COLORS.primary} />
-            <Text style={styles.compactActionText}>
-              {redFilter
-                ? session.events.filter((e) => !e.classification).length
-                : session.events.length}
-            </Text>
-          </TouchableOpacity>
-
-          <View style={styles.compactMetric}>
-            <Ionicons
-              name={isTracking ? "navigate" : "navigate-outline"}
-              size={18}
-              color={isTracking ? COLORS.primary : COLORS.textTertiary}
-            />
-            <Text style={styles.compactMetricText}>
-              {location?.accuracy
-                ? `GPS ${Math.round(location.accuracy)}m`
-                : "GPS --"}
-            </Text>
-          </View>
+      <View style={styles.activeMap}>
+        <SessionMap ref={sessionMapRef} gpsTrace={gpsTrace} events={session.events ?? []} userLocation={userLocation} onEventPress={openClassify} mapType={sessionMapType} />
+        <View style={[styles.mapHeader, { top: mapHeaderTop }]}>
+          <Image source={require("@/assets/images/walksense-mark.png")} style={styles.activeHeaderLogo} resizeMode="contain" />
+          <View style={styles.activeHeaderCopy}><Text style={styles.activeHeaderTitle}>Session terrain</Text><View style={styles.activeStatusRow}><View style={styles.liveDot} /><Text style={styles.activeStatusText}>{isRunning ? (isTracking ? "GPS actif" : "En cours") : "En pause"}</Text></View></View>
+          <View style={styles.headerMapControls}><MapTypeToggle currentType={sessionMapType} onChange={setSessionMapType} compact /><TouchableOpacity style={[styles.headerMapControlButton, !userLocation && styles.headerMapControlDisabled]} onPress={() => sessionMapRef.current?.centerOnUser()} disabled={!userLocation}><Ionicons name="locate" size={18} color={userLocation ? COLORS.primary : COLORS.textTertiary} /></TouchableOpacity><TouchableOpacity style={styles.headerMapControlButton} onPress={() => sessionMapRef.current?.fitTrace()}><Ionicons name="expand-outline" size={18} color={COLORS.accent} /></TouchableOpacity></View>
         </View>
-      )}
-
-      <View
-        style={[
-          panelsCollapsed ? styles.controlsFloating : styles.controls,
-          panelsCollapsed
-            ? {
-                bottom: Math.max(insets.bottom, 8) + 76,
-                paddingBottom: 12,
-              }
-            : {
-                marginBottom: Math.max(insets.bottom, 8) + 64,
-                paddingBottom: 12,
-              },
-        ]}
-      >
-        {isRunning ? (
-          <ControlButton
-            icon="pause"
-            label="Pause"
-            color={COLORS.warning}
-            onPress={handlePause}
-          />
-        ) : (
-          <ControlButton
-            icon="play"
-            label="Reprendre"
-            color={COLORS.success}
-            onPress={handleResume}
-          />
-        )}
-
-        <ControlButton
-          icon="stop"
-          label="Terminer"
-          color={COLORS.error}
-          onPress={handleEnd}
-        />
+        <View style={styles.mapFade} />
       </View>
-
-      <ClassifySheet
-        visible={classifyVisible}
-        event={selectedEvent}
-        onClose={() => setClassifyVisible(false)}
-        onClassify={handleClassify}
-        onRefill={handleRefill}
-      />
-
-      <Toast
-        message={toast}
-        onDone={() => setToast(null)}
-        topOffset={mapToastTop}
-      />
-
+      <View style={[styles.activeSheet, panelsCollapsed && styles.activeSheetCollapsed, { paddingBottom: Math.max(insets.bottom, 8) + 78 }]}>
+        <View style={styles.chronoCard}>
+          <TouchableOpacity style={[styles.pauseOrb, !isRunning && styles.pauseOrbResume]} onPress={isRunning ? handlePause : handleResume}><Ionicons name={isRunning ? "pause" : "play"} size={30} color="#1A1305" /></TouchableOpacity>
+          <View style={styles.chronoCopy}><Text style={styles.chronoLabel}>CHRONO</Text><Text style={styles.chronoValue}>{formatDuration(elapsed)}</Text><View style={styles.activeStatusRow}><View style={styles.liveDot} /><Text style={styles.activeStatusText}>{isRunning ? (isTracking ? "GPS actif" : "En cours") : "En pause"}</Text></View></View>
+          <View style={styles.chronoDivider} />
+          <View style={styles.metricGrid}><View style={styles.metricCell}><Ionicons name="arrow-forward" size={17} color={COLORS.primary} /><Text style={styles.metricLabel}>Distance</Text><Text style={styles.metricValue}>{Math.round(totalDistance)} m</Text></View><View style={styles.metricCell}><Ionicons name="locate" size={17} color={COLORS.primary} /><Text style={styles.metricLabel}>Précision</Text><Text style={styles.metricValue}>{location?.accuracy ? Math.round(location.accuracy) : "--"} m</Text></View></View>
+        </View>
+        <View style={styles.findsCard}>
+          <View style={styles.findsHeader}><View><Text style={styles.findsTitle}>TROUVAILLES</Text><Text style={styles.findsCount}>{redFilter ? session.events.filter((e) => !e.classification).length : session.events.length} affichée{(redFilter ? session.events.filter((e) => !e.classification).length : session.events.length) > 1 ? "s" : ""}</Text></View><TouchableOpacity style={styles.addFindButton} onPress={handleAddMarker}><Ionicons name="add" size={24} color="#1A1305" /></TouchableOpacity></View>
+          <View style={styles.findsList}>{(redFilter ? session.events.filter((e) => !e.classification) : session.events).slice(0, 3).map((event, index) => (<TouchableOpacity key={event.id} style={styles.findItem} onPress={() => openClassify(event)}><View style={styles.findIconBox}><Ionicons name="search" size={18} color={COLORS.accent} /></View><View style={styles.findCopy}><Text style={styles.findTitle} numberOfLines={1}>{event.classification || "Trouvaille non classée"}</Text><Text style={styles.findSubtitle} numberOfLines={1}>{event.notes || "Classification terrain à compléter"}</Text></View><Text style={styles.findBadge}>#{String(index + 1).padStart(2, "0")}</Text></TouchableOpacity>))}{session.events.length === 0 ? <Text style={styles.emptyFindsText}>Aucune trouvaille enregistrée</Text> : null}</View>
+        </View>
+        <View style={styles.bottomActions}><TouchableOpacity style={styles.ghostButton} onPress={isRunning ? handlePause : handleResume}><Text style={styles.ghostButtonText}>{isRunning ? "Pause" : "Reprendre"}</Text></TouchableOpacity><TouchableOpacity style={styles.dangerButton} onPress={handleEnd}><Text style={styles.dangerButtonText}>Terminer</Text></TouchableOpacity></View>
+      </View>
+      <View style={[styles.mapQuickActions, { top: mapControlsTop }]}><TouchableOpacity style={[styles.mapQuickActionButton, redFilter && styles.redFilterButtonActive]} onPress={() => setRedFilter(!redFilter)}><Ionicons name="filter" size={20} color={redFilter ? COLORS.background : COLORS.accent} /></TouchableOpacity><TouchableOpacity style={styles.mapQuickActionButton} onPress={() => setPanelsCollapsed((value) => !value)}><Ionicons name={panelsCollapsed ? "chevron-up" : "chevron-down"} size={20} color={COLORS.accent} /></TouchableOpacity></View>
+      <ClassifySheet visible={classifyVisible} event={selectedEvent} onClose={() => setClassifyVisible(false)} onClassify={handleClassify} onRefill={handleRefill} />
+      <Toast message={toast} onDone={() => setToast(null)} topOffset={mapToastTop} />
       {redFilter ? <View style={styles.redFilterOverlay} /> : null}
     </View>
   );
 }
 
-interface ControlButtonProps {
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  label: string;
-  color: string;
-  onPress: () => void;
-}
-
-function ControlButton({ icon, label, color, onPress }: ControlButtonProps) {
-  return (
-    <TouchableOpacity
-      style={[styles.control, { backgroundColor: color }]}
-      onPress={onPress}
-    >
-      <Ionicons name={icon} size={20} color="white" />
-      <Text style={styles.controlText}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  mapHeader: {
-    position: "absolute",
-    left: 14,
-    right: 14,
-    zIndex: 30,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: "rgba(4, 10, 6, 0.82)",
-    borderWidth: 1,
-    borderColor: "rgba(212,175,55,0.18)",
-    shadowColor: COLORS.orPremium,
-    shadowOpacity: 0.14,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  brandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  headerMapControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  headerMapControlButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: "rgba(5, 12, 8, 0.88)",
-    borderWidth: 1,
-    borderColor: "rgba(212, 175, 55, 0.34)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerMapControlDisabled: {
-    opacity: 0.42,
-  },
-  mapArea: {
-    flex: 3,
-    overflow: "hidden",
-  },
-  mapAreaExpanded: {
-    flex: 1,
-    overflow: "hidden",
-  },
-  emptyBackground: {
-    flex: 1,
-  },
-  emptyOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.38)",
-  },
-  emptyScroll: {
-    flex: 1,
-  },
-  emptyContent: {
-    flexGrow: 1,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  emptyBrandHero: {
-    width: "100%",
-    minHeight: 190,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingTop: 6,
-    paddingHorizontal: 12,
-  },
-  emptyLogoGlow: {
-    width: 98,
-    height: 98,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 26,
-    shadowColor: COLORS.accent,
-    shadowOpacity: 0.34,
-    shadowRadius: 22,
-    elevation: 12,
-  },
-  emptyLogo: {
-    width: 88,
-    height: 88,
-    borderRadius: 18,
-  },
-  emptyBrandTitle: {
-    color: COLORS.accent,
-    fontSize: 38,
-    lineHeight: 44,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  emptyBrandSubtitle: {
-    color: "#D8D2C4",
-    fontSize: 16,
-    lineHeight: 21,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  emptyDivider: {
-    width: "62%",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 0,
-  },
-  emptyDividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "rgba(137, 255, 63, 0.42)",
-  },
-  emptyDividerDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: COLORS.glowGreen,
-    shadowColor: COLORS.glowGreen,
-    shadowOpacity: 0.9,
-    shadowRadius: 14,
-  },
-  emptyCopyBlock: {
-    width: "100%",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 8,
-  },
-  emptyLead: {
-    color: COLORS.text,
-    fontSize: 19,
-    lineHeight: 26,
-    fontWeight: "900",
-    textAlign: "center",
-    width: "100%",
-    maxWidth: 350,
-    flexShrink: 1,
-  },
-  emptySubcopy: {
-    color: COLORS.textSecondary,
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: "600",
-    textAlign: "center",
-    width: "100%",
-    maxWidth: 330,
-    flexShrink: 1,
-  },
-  startButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    alignSelf: "stretch",
-    minHeight: 60,
-    marginHorizontal: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "rgba(26, 58, 26, 0.82)",
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    shadowColor: COLORS.accent,
-    shadowOpacity: 0.36,
-    shadowRadius: 18,
-  },
-  startButtonDisabled: {
-    opacity: 0.42,
-  },
-  startText: {
-    flex: 1,
-    color: COLORS.accent,
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: "900",
-    letterSpacing: 0.5,
-    textAlign: "center",
-    flexShrink: 1,
-  },
-  controls: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 22,
-    paddingTop: 16,
-    paddingVertical: 18,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.divider,
-    backgroundColor: COLORS.glassStrong,
-  },
-  controlsFloating: {
-    position: "absolute",
-    left: 18,
-    right: 18,
-    bottom: 0,
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 0,
-    paddingTop: 10,
-    paddingVertical: 12,
-  },
-  mapQuickActions: {
-    position: "absolute",
-    right: 16,
-    zIndex: 46,
-    elevation: 15,
-    alignItems: "center",
-    gap: 10,
-  },
-  mapQuickActionButton: {
-    width: 48,
-    height: 48,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
-    backgroundColor: COLORS.glassStrong,
-    shadowColor: COLORS.glowGreen,
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  redFilterButtonActive: {
-    backgroundColor: COLORS.accent,
-  },
-  compactDock: {
-    position: "absolute",
-    left: 18,
-    right: 18,
-    bottom: 104,
-    minHeight: 58,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.glassStrong,
-  },
-  compactAction: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  compactActionText: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  compactMetric: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  compactMetricText: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  redFilterOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    pointerEvents: "none",
-    backgroundColor: "rgba(180, 0, 0, 0.28)",
-  },
-  control: {
-    flex: 1,
-    height: 50,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.16)",
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  controlText: {
-    color: "white",
-    fontSize: 15,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
+  container: { flex: 1, backgroundColor: "#050505" },
+  idleBackdrop: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", opacity: 0.55 },
+  radarCircleOuter: { position: "absolute", width: 340, height: 340, borderRadius: 170, borderWidth: 1, borderColor: "rgba(212,175,55,0.30)" },
+  radarCircleMiddle: { position: "absolute", width: 250, height: 250, borderRadius: 125, borderWidth: 1, borderColor: "rgba(212,175,55,0.36)" },
+  radarCircleInner: { position: "absolute", width: 170, height: 170, borderRadius: 85, borderWidth: 1, borderColor: "rgba(212,175,55,0.42)" },
+  emptyScroll: { flex: 1 },
+  emptyContent: { flexGrow: 1, alignItems: "center", justifyContent: "center", gap: 26, paddingHorizontal: 22 },
+  emptyBrandHero: { alignItems: "center", gap: 8 },
+  emptyLogoGlow: { width: 132, height: 132, alignItems: "center", justifyContent: "center", borderRadius: 34, shadowColor: "#D4AF37", shadowOpacity: 0.42, shadowRadius: 26, elevation: 14 },
+  emptyLogo: { width: 120, height: 120, borderRadius: 24 },
+  emptyBrandTitle: { color: "#D4AF37", fontSize: 32, lineHeight: 38, fontWeight: "900", textAlign: "center", textShadowColor: "rgba(212,175,55,0.55)", textShadowRadius: 16 },
+  emptyBrandSubtitle: { color: "#B8B8B8", fontSize: 11, fontWeight: "900", letterSpacing: 3.5, textTransform: "uppercase" },
+  emptyCopyBlock: { width: "100%", alignItems: "center", gap: 10 },
+  emptyLead: { maxWidth: 330, color: "#F5F1E8", fontSize: 22, lineHeight: 29, fontWeight: "900", textAlign: "center" },
+  emptySubcopy: { maxWidth: 330, color: "#B8B8B8", fontSize: 14, lineHeight: 21, fontWeight: "700", textAlign: "center" },
+  gpsCard: { width: "100%", minHeight: 72, flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 18, borderWidth: 1, borderColor: "rgba(80,230,78,0.28)", backgroundColor: "rgba(5,12,7,0.92)" },
+  gpsBars: { width: 34, height: 34, flexDirection: "row", alignItems: "flex-end", gap: 3 },
+  gpsBar: { width: 4, borderRadius: 3, backgroundColor: "#50E64E", shadowColor: "#50E64E", shadowOpacity: 0.7, shadowRadius: 7 },
+  gpsBarOne: { height: 10 }, gpsBarTwo: { height: 15 }, gpsBarThree: { height: 21 }, gpsBarFour: { height: 28 }, gpsBarFive: { height: 34 },
+  gpsCopy: { flex: 1 },
+  gpsLabel: { color: "#B8B8B8", fontSize: 12, fontWeight: "900" },
+  gpsValue: { marginTop: 3, color: "#50E64E", fontSize: 15, fontWeight: "900" },
+  startButton: { alignSelf: "stretch", minHeight: 64, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 18, borderRadius: 14, backgroundColor: "#D4AF37", shadowColor: "#D4AF37", shadowOpacity: 0.55, shadowRadius: 18, elevation: 9 },
+  startButtonDisabled: { opacity: 0.42 },
+  startText: { color: "#1A1305", fontSize: 15, fontWeight: "900", letterSpacing: 0.8, textAlign: "center" },
+  activeMap: { position: "absolute", top: 0, left: 0, right: 0, height: 300, overflow: "hidden" },
+  mapHeader: { position: "absolute", left: 12, right: 12, zIndex: 30, minHeight: 62, flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderWidth: 1, borderColor: "rgba(212,175,55,0.32)", backgroundColor: "rgba(2,7,4,0.92)", shadowColor: "#D4AF37", shadowOpacity: 0.18, shadowRadius: 18, elevation: 8 },
+  activeHeaderLogo: { width: 42, height: 42, borderRadius: 10 },
+  activeHeaderCopy: { flex: 1, minWidth: 0 },
+  activeHeaderTitle: { color: "#D4AF37", fontSize: 14, fontWeight: "900" },
+  activeStatusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#50E64E", shadowColor: "#50E64E", shadowOpacity: 0.9, shadowRadius: 8 },
+  activeStatusText: { color: "#B8B8B8", fontSize: 11, fontWeight: "800" },
+  headerMapControls: { flexDirection: "row", alignItems: "center", gap: 7 },
+  headerMapControlButton: { width: 38, height: 38, alignItems: "center", justifyContent: "center", borderRadius: 11, borderWidth: 1, borderColor: "rgba(212,175,55,0.32)", backgroundColor: "rgba(5,12,7,0.92)" },
+  headerMapControlDisabled: { opacity: 0.42 },
+  mapFade: { position: "absolute", left: 0, right: 0, bottom: 0, height: 90, backgroundColor: "rgba(5,5,5,0.58)" },
+  activeSheet: { position: "absolute", top: 300, left: 0, right: 0, bottom: 0, gap: 12, paddingHorizontal: 14, paddingTop: 14, backgroundColor: "#050505" },
+  activeSheetCollapsed: { top: 390 },
+  chronoCard: { minHeight: 132, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: "rgba(212,175,55,0.32)", backgroundColor: "rgba(5,12,7,0.92)", shadowColor: "#D4AF37", shadowOpacity: 0.18, shadowRadius: 18, elevation: 8 },
+  pauseOrb: { width: 60, height: 60, alignItems: "center", justifyContent: "center", borderRadius: 30, borderWidth: 1, borderColor: "#D4AF37", backgroundColor: "#D4AF37", shadowColor: "#D4AF37", shadowOpacity: 0.55, shadowRadius: 18 },
+  pauseOrbResume: { backgroundColor: "#50E64E", borderColor: "#50E64E", shadowColor: "#50E64E" },
+  chronoCopy: { flex: 1, minWidth: 0 },
+  chronoLabel: { color: "#D4AF37", fontSize: 10, fontWeight: "900", letterSpacing: 1.8 },
+  chronoValue: { marginTop: 3, color: "#F5F1E8", fontSize: 32, lineHeight: 38, fontWeight: "900", fontVariant: ["tabular-nums"] },
+  chronoDivider: { width: 1, alignSelf: "stretch", backgroundColor: "rgba(212,175,55,0.22)" },
+  metricGrid: { width: 112, gap: 10 },
+  metricCell: { gap: 2 },
+  metricLabel: { color: "#B8B8B8", fontSize: 10, fontWeight: "800" },
+  metricValue: { color: "#F5F1E8", fontSize: 13, fontWeight: "900", fontVariant: ["tabular-nums"] },
+  findsCard: { padding: 14, borderRadius: 18, borderWidth: 1, borderColor: "rgba(80,230,78,0.28)", backgroundColor: "rgba(5,12,7,0.92)" },
+  findsHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  findsTitle: { color: "#D4AF37", fontSize: 14, fontWeight: "900", letterSpacing: 1.1 },
+  findsCount: { marginTop: 3, color: "#B8B8B8", fontSize: 12, fontWeight: "800" },
+  addFindButton: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "#D4AF37", shadowColor: "#D4AF37", shadowOpacity: 0.45, shadowRadius: 14 },
+  findsList: { gap: 8 },
+  findItem: { minHeight: 54, flexDirection: "row", alignItems: "center", gap: 10 },
+  findIconBox: { width: 36, height: 36, alignItems: "center", justifyContent: "center", borderRadius: 10, borderWidth: 1, borderColor: "rgba(212,175,55,0.32)", backgroundColor: "rgba(212,175,55,0.06)" },
+  findCopy: { flex: 1, minWidth: 0 },
+  findTitle: { color: "#F5F1E8", fontSize: 14, fontWeight: "900" },
+  findSubtitle: { marginTop: 2, color: "#B8B8B8", fontSize: 12, fontWeight: "700" },
+  findBadge: { color: "#D4AF37", fontSize: 12, fontWeight: "900" },
+  emptyFindsText: { color: "#787268", fontSize: 13, fontWeight: "800", textAlign: "center", paddingVertical: 10 },
+  bottomActions: { flexDirection: "row", gap: 10 },
+  ghostButton: { flex: 1, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: "rgba(212,175,55,0.32)", backgroundColor: "rgba(212,175,55,0.06)" },
+  ghostButtonText: { color: "#F5F1E8", fontSize: 14, fontWeight: "900" },
+  dangerButton: { flex: 1, height: 54, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: "#E5484D", shadowColor: "#E5484D", shadowOpacity: 0.45, shadowRadius: 14 },
+  dangerButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "900" },
+  mapQuickActions: { position: "absolute", right: 14, zIndex: 46, elevation: 15, alignItems: "center", gap: 10 },
+  mapQuickActionButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: "rgba(212,175,55,0.32)", backgroundColor: "rgba(2,7,4,0.92)" },
+  redFilterButtonActive: { backgroundColor: "#D4AF37" },
+  redFilterOverlay: { ...StyleSheet.absoluteFillObject, pointerEvents: "none", backgroundColor: "rgba(180,0,0,0.18)" },
+  control: { flex: 1, height: 50, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.16)", shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 10, elevation: 4 },
+  controlText: { color: "white", fontSize: 15, fontWeight: "700", letterSpacing: 0.3 },
 });
