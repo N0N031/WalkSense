@@ -6,7 +6,6 @@ import {
     ActivityIndicator,
     Image,
     ScrollView,
-    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -135,7 +134,7 @@ export default function MapScreen() {
         <GlobalMap
           traces={traces}
           userLocation={userLocation}
-          controlsTopOffset={(StatusBar.currentHeight ?? insets.top) + 116}
+          controlsTopOffset={insets.top + 96}
         />
         {loading ? (
           <View style={styles.loading}>
@@ -144,7 +143,7 @@ export default function MapScreen() {
         ) : null}
       </View>
 
-      <View style={[styles.header, { top: (StatusBar.currentHeight ?? insets.top) + 42 }]}>
+      <View style={[styles.header, { top: insets.top + 12 }]}>
         <Image source={require("@/assets/images/walksense-mark.png")} style={styles.headerLogo} resizeMode="contain" />
         <View style={styles.headerCopy}>
           <Text style={styles.headerTitle}>WalkSense</Text>
@@ -156,12 +155,6 @@ export default function MapScreen() {
         <TouchableOpacity style={styles.sessionsButtonInline} onPress={() => setDrawerOpen(true)} activeOpacity={0.82}>
           <Ionicons name="list-outline" size={22} color={COLORS.accent} />
         </TouchableOpacity>
-      </View>
-
-      <View style={[styles.rightRail, { top: (StatusBar.currentHeight ?? insets.top) + 132 }]}>
-        <TouchableOpacity style={styles.railButton} onPress={() => setDrawerOpen(true)}><Ionicons name="layers-outline" size={20} color={COLORS.accent} /></TouchableOpacity>
-        <TouchableOpacity style={styles.railButton} onPress={loadSessions}><Ionicons name="locate" size={20} color={COLORS.primary} /></TouchableOpacity>
-        <TouchableOpacity style={styles.railButton} onPress={() => setDrawerOpen(true)}><Ionicons name="expand-outline" size={20} color={COLORS.accent} /></TouchableOpacity>
       </View>
 
       {!loading ? (
@@ -223,8 +216,6 @@ const styles = StyleSheet.create({
   headerSubtitle: { marginTop: 3, color: "#B8B8B8", fontSize: 11, fontWeight: "800" },
   distance: { color: "#D4AF37", fontSize: 18, fontWeight: "900", fontVariant: ["tabular-nums"] },
   sessionsButtonInline: { width: 38, height: 38, alignItems: "center", justifyContent: "center", borderRadius: 11, borderWidth: 1, borderColor: "rgba(212,175,55,0.32)", backgroundColor: "rgba(212,175,55,0.06)" },
-  rightRail: { position: "absolute", right: 14, gap: 10 },
-  railButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 12, borderWidth: 1, borderColor: "rgba(212,175,55,0.32)", backgroundColor: "rgba(2,7,4,0.92)", shadowColor: "#000", shadowOpacity: 0.26, shadowRadius: 12, elevation: 8 },
   passageLegend: { position: "absolute", left: 14, right: 14, minHeight: 64, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, borderWidth: 1, borderColor: "rgba(80,230,78,0.28)", backgroundColor: "rgba(2,7,4,0.92)" },
   passageLegendTitle: { color: "#D4AF37", fontSize: 11, fontWeight: "900", letterSpacing: 1.6 },
   passageLegendText: { color: "#B8B8B8", fontSize: 12, fontWeight: "800", marginTop: 3 },

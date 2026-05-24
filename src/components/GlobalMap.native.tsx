@@ -157,9 +157,6 @@ export default function GlobalMap({
         maxZoomLevel={zoomLimits.max}
         showsUserLocation={false}
         showsMyLocationButton={false}
-        loadingEnabled
-        loadingBackgroundColor="#050805"
-        loadingIndicatorColor="#D4AF37"
         onMapReady={() => {
           if (userLocation) centerOnUser();
           else fitAll();

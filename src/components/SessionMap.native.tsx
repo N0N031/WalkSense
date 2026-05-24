@@ -173,9 +173,6 @@ function SessionMap(
         showsUserLocation={false}
         showsMyLocationButton={false}
         moveOnMarkerPress={false}
-        loadingEnabled
-        loadingBackgroundColor="#050805"
-        loadingIndicatorColor="#D4AF37"
       >
         {tileUrlTemplate ? (
           <UrlTile
