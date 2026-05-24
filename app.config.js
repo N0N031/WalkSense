@@ -46,7 +46,7 @@ export default {
     },
     scheme: "walksense",
     userInterfaceStyle: "automatic",
-    newArchEnabled: true,
+    newArchEnabled: false,
 
     ios: {
       supportsTablet: false,
@@ -70,6 +70,16 @@ export default {
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
+      // APK interne : arm64-v8a uniquement (réduit temps de build et mémoire)
+      buildGradleExtraContent: `
+android {
+    defaultConfig {
+        ndk {
+            abiFilters "arm64-v8a"
+        }
+    }
+}
+`,
       permissions: [
         "android.permission.INTERNET",
         "android.permission.ACCESS_COARSE_LOCATION",
