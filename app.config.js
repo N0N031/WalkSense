@@ -46,7 +46,7 @@ export default {
     },
     scheme: "walksense",
     userInterfaceStyle: "automatic",
-    newArchEnabled: false,
+    newArchEnabled: true,
 
     ios: {
       supportsTablet: false,
