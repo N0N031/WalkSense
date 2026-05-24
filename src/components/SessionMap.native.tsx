@@ -17,7 +17,7 @@ import RNMapView, {
   Circle,
   Marker,
   Polyline,
-  PROVIDER_GOOGLE,
+  PROVIDER_DEFAULT,
   UrlTile,
 } from "react-native-maps";
 
@@ -164,7 +164,7 @@ function SessionMap(
     <View style={styles.container}>
       <RNMapView
         ref={mapRef}
-        provider={PROVIDER_GOOGLE}
+        provider={PROVIDER_DEFAULT}
         style={StyleSheet.absoluteFillObject}
         mapType={nativeMapType}
         initialRegion={region}
