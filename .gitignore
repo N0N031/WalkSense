@@ -76,4 +76,5 @@ replay_pid*.log
 
 # Env
 .env*
-!.env.example
+!.env.example*.apk
+temp-android-export/

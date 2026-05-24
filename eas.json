@@ -16,10 +16,8 @@
     "apk": {
       "distribution": "internal",
       "environment": "production",
-      "resourceClass": "large",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "buildType": "apk"
       }
     },
     "production": {
